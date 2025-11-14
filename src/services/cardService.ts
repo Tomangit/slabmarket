@@ -175,6 +175,175 @@ export const cardService = {
     return data;
   },
 
+  // Get cards that have slabs in user's wishlists
+  async getCardsInWishlists(userId: string, filters?: {
+    category_id?: string;
+    set_name?: string;
+    min_price?: number;
+    max_price?: number;
+    search?: string;
+    page?: number;
+    pageSize?: number;
+    sortBy?: string;
+  }) {
+    // First, get all slab IDs from user's wishlists
+    const { data: wishlistItems, error: wishlistError } = await supabase
+      .from("wishlist_items")
+      .select(`
+        slab_id,
+        wishlist:wishlists!inner(
+          user_id
+        )
+      `)
+      .eq("wishlist.user_id", userId);
+
+    if (wishlistError) throw wishlistError;
+
+    if (!wishlistItems || wishlistItems.length === 0) {
+      return {
+        cards: [],
+        total: 0,
+        page: filters?.page || 1,
+        pageSize: filters?.pageSize || 100,
+        totalPages: 0,
+      };
+    }
+
+    // Get unique slab IDs
+    const slabIds = Array.from(new Set(wishlistItems.map((item: any) => item.slab_id)));
+
+    // Get slabs with their card information
+    const { data: slabs, error: slabsError } = await supabase
+      .from("slabs")
+      .select(`
+        id,
+        card_id,
+        card:cards!inner(
+          id,
+          name,
+          set_name,
+          card_number,
+          rarity,
+          year,
+          image_url,
+          category_id,
+          category:categories(id, name, slug)
+        )
+      `)
+      .in("id", slabIds)
+      .eq("status", "active");
+
+    if (slabsError) throw slabsError;
+
+    if (!slabs || slabs.length === 0) {
+      return {
+        cards: [],
+        total: 0,
+        page: filters?.page || 1,
+        pageSize: filters?.pageSize || 100,
+        totalPages: 0,
+      };
+    }
+
+    // Get unique card IDs
+    const cardIds = Array.from(new Set(slabs.map((slab: any) => slab.card_id).filter(Boolean)));
+
+    if (cardIds.length === 0) {
+      return {
+        cards: [],
+        total: 0,
+        page: filters?.page || 1,
+        pageSize: filters?.pageSize || 100,
+        totalPages: 0,
+      };
+    }
+
+    // Now get marketplace cards for these card IDs
+    const page = filters?.page || 1;
+    const pageSize = filters?.pageSize || 100;
+    const offset = (page - 1) * pageSize;
+
+    // Determine sort order
+    let orderBy = "name";
+    let ascending = true;
+    
+    if (filters?.sortBy) {
+      switch (filters.sortBy) {
+        case "name-asc":
+          orderBy = "name";
+          ascending = true;
+          break;
+        case "name-desc":
+          orderBy = "name";
+          ascending = false;
+          break;
+        case "price-low":
+          orderBy = "lowest_price";
+          ascending = true;
+          break;
+        case "price-high":
+          orderBy = "lowest_price";
+          ascending = false;
+          break;
+        case "popular":
+          orderBy = "total_listings";
+          ascending = false;
+          break;
+        default:
+          orderBy = "name";
+          ascending = true;
+      }
+    }
+
+    let query = supabase
+      .from("marketplace_cards")
+      .select("*", { count: "exact" })
+      .in("id", cardIds);
+
+    // Apply filters
+    if (filters?.category_id) {
+      query = query.eq("category_id", filters.category_id);
+    }
+
+    if (filters?.set_name) {
+      query = query.eq("set_name", filters.set_name);
+    }
+
+    if (filters?.min_price && filters.min_price > 0) {
+      query = query.or(`lowest_price.gte.${filters.min_price},lowest_price.is.null`);
+    }
+
+    if (filters?.max_price && filters.max_price < 10000) {
+      query = query.or(`lowest_price.lte.${filters.max_price},lowest_price.is.null`);
+    }
+
+    if (filters?.search) {
+      query = query.ilike("name", `%${filters.search}%`);
+    }
+    
+    // Apply ordering
+    if (orderBy === "total_listings") {
+      query = query.order(orderBy, { ascending, nullsFirst: false });
+    } else {
+      query = query.order(orderBy, { ascending });
+    }
+    
+    // Apply pagination
+    query = query.range(offset, offset + pageSize - 1);
+
+    const { data, error, count } = await query;
+
+    if (error) throw error;
+
+    return {
+      cards: (data as MarketplaceCard[]) || [],
+      total: count || 0,
+      page,
+      pageSize,
+      totalPages: Math.ceil((count || 0) / pageSize),
+    };
+  },
+
   async createCard(card: CardInsert) {
     const { data, error } = await supabase
       .from("cards")
