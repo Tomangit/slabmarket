@@ -45,17 +45,7 @@ export function Footer() {
             <h3 className="font-semibold mb-4">Resources</h3>
             <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
               <li>
-                <Link href="/about" className="hover:text-blue-600 transition-colors">
-                  How It Works
-                </Link>
-              </li>
-              <li>
                 <Link href="/verification" className="hover:text-blue-600 transition-colors">
-                  Certificate Verification
-                </Link>
-              </li>
-              <li>
-                <Link href="/buyer-protection" className="hover:text-blue-600 transition-colors">
                   Buyer Protection
                 </Link>
               </li>

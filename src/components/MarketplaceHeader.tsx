@@ -18,8 +18,8 @@ export function MarketplaceHeader() {
             <Link href="/marketplace" className="text-sm font-medium hover:text-blue-600 transition-colors">
               Marketplace
             </Link>
-            <Link href="/about" className="text-sm font-medium hover:text-blue-600 transition-colors">
-              How It Works
+            <Link href="/verification" className="text-sm font-medium hover:text-blue-600 transition-colors">
+              Buyer Protection
             </Link>
             <Link href="/pricing" className="text-sm font-medium hover:text-blue-600 transition-colors">
               Pricing

@@ -1,10 +1,11 @@
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, memo } from "react";
 import { useTranslations } from 'next-intl';
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, TrendingUp, Package, Search, Star, Award, Sparkles, Flame, Clock, Heart } from "lucide-react";
+import { ShieldCheck, TrendingUp, Package, Search, Star, Award, Sparkles, Flame, Clock, Heart, Ban, CreditCard, Flag, Lock, UserCheck, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { MainHeader } from "@/components/MainHeader";
 import { Footer } from "@/components/Footer";
@@ -101,6 +102,14 @@ export default function HomePage() {
               <span>{t('home.escrowProtected')}</span>
             </div>
             <div className="flex items-center gap-2">
+              <Ban className="h-5 w-5 text-red-600" />
+              <span>Scammers Banned</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Star className="h-5 w-5 text-yellow-600" />
+              <span>Seller Ratings</span>
+            </div>
+            <div className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-purple-600" />
               <span>{t('home.marketAnalytics')}</span>
             </div>
@@ -120,6 +129,129 @@ export default function HomePage() {
                 {company}
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Buyer Protection Section */}
+      <section className="container mx-auto px-4 py-20 bg-gradient-to-b from-blue-50 to-white dark:from-blue-950/20 dark:to-slate-900">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <ShieldCheck className="h-10 w-10 text-blue-600" />
+              <h2 className="text-3xl md:text-4xl font-bold">
+                Your Safety is Our Priority
+              </h2>
+            </div>
+            <p className="text-lg text-slate-600 dark:text-slate-400 max-w-3xl mx-auto mb-8">
+              We've built multiple layers of protection to ensure you're buying authentic graded cards from trusted sellers. Scammers are immediately banned and never receive payment.
+            </p>
+            <Button size="lg" variant="outline" asChild>
+              <Link href="/verification">
+                <ShieldCheck className="mr-2 h-5 w-5" />
+                Learn About Buyer Protection
+              </Link>
+            </Button>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <Card className="border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
+                    <Star className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <CardTitle className="text-lg">Seller Rating System</CardTitle>
+                </div>
+                <CardDescription>
+                  Every seller has a rating based on transaction history. Check reviews before buying to ensure you're dealing with trusted sellers.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="border-red-200 dark:border-red-800 bg-white dark:bg-slate-900">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900">
+                    <Ban className="h-6 w-6 text-red-600" />
+                  </div>
+                  <CardTitle className="text-lg">Scammer Protection</CardTitle>
+                </div>
+                <CardDescription>
+                  Scammers and fraudulent sellers are immediately banned. We actively monitor for suspicious activity and take swift action.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="border-green-200 dark:border-green-800 bg-white dark:bg-slate-900">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900">
+                    <CreditCard className="h-6 w-6 text-green-600" />
+                  </div>
+                  <CardTitle className="text-lg">Payment Protection</CardTitle>
+                </div>
+                <CardDescription>
+                  If you report a scammer before payment is processed, we immediately block the payment. Scammers never receive money from fraudulent transactions.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="border-orange-200 dark:border-orange-800 bg-white dark:bg-slate-900">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900">
+                    <Flag className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <CardTitle className="text-lg">Easy Reporting</CardTitle>
+                </div>
+                <CardDescription>
+                  Suspect a fake slab? Report it immediately through our dispute system. Our team reviews all reports and takes appropriate action.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
+                    <Lock className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <CardTitle className="text-lg">Escrow Protection</CardTitle>
+                </div>
+                <CardDescription>
+                  All transactions are protected by our escrow system. Funds are held securely until you confirm receipt and authenticity.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
+                    <UserCheck className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <CardTitle className="text-lg">Verified Sellers</CardTitle>
+                </div>
+                <CardDescription>
+                  Look for verified seller badges. These sellers have undergone additional verification and have a proven track record.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+
+          <div className="mt-8 p-6 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
+            <div className="flex items-start gap-4">
+              <CheckCircle2 className="h-6 w-6 text-green-600 mt-1 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-green-800 dark:text-green-400 mb-2">
+                  Full Refund Guarantee
+                </h3>
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  If you receive a fake slab, we'll work with you to get a full refund and take action against the seller. Our support team is available to help resolve any disputes.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -192,7 +324,7 @@ export default function HomePage() {
               </CardHeader>
             </Card>
 
-            <Card>
+            <Card className="border-2 border-blue-200 dark:border-blue-800">
               <CardHeader>
                 <Award className="h-10 w-10 text-pink-600 mb-2" />
                 <CardTitle>Buyer Protection</CardTitle>
@@ -201,6 +333,13 @@ export default function HomePage() {
                   return policies, and transparent dispute resolution.
                 </CardDescription>
               </CardHeader>
+              <CardContent>
+                <Button variant="outline" size="sm" className="w-full" asChild>
+                  <Link href="/verification">
+                    Learn More About Protection
+                  </Link>
+                </Button>
+              </CardContent>
             </Card>
           </div>
         </div>
@@ -509,7 +648,7 @@ export default function HomePage() {
               <Link href="/auth/register">Create Account</Link>
             </Button>
             <Button size="lg" variant="outline" className="text-lg px-8" asChild>
-              <Link href="/about">Learn More</Link>
+              <Link href="/verification">Learn More About Protection</Link>
             </Button>
           </div>
         </div>
@@ -521,7 +660,7 @@ export default function HomePage() {
 }
 
 // Slab Card Component for homepage sections
-function SlabCard({ slab }: { slab: any }) {
+const SlabCard = memo(function SlabCard({ slab }: { slab: any }) {
   const t = useTranslations();
   const imageUrl = slab.images && Array.isArray(slab.images) && slab.images.length > 0 
     ? slab.images[0] 
@@ -533,10 +672,15 @@ function SlabCard({ slab }: { slab: any }) {
         <CardHeader className="p-0">
           <div className="relative aspect-[3/4] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-t-lg overflow-hidden">
             {imageUrl ? (
-              <img
+              <Image
                 src={imageUrl}
                 alt={slab.name || "Slab"}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                fill
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                loading="lazy"
+                placeholder="blur"
+                blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center text-6xl">
@@ -584,4 +728,4 @@ function SlabCard({ slab }: { slab: any }) {
       </Link>
     </Card>
   );
-}
+});

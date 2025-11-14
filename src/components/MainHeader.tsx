@@ -193,6 +193,24 @@ export function MainHeader({ currentPage }: MainHeaderProps) {
               {t('common.marketplace')}
             </Link>
             <Link
+              href="/verification"
+              className={`text-sm font-medium transition-colors ${
+                isActive("verification") ? "text-blue-600" : "hover:text-blue-600"
+              }`}
+            >
+              {t('verification.title')}
+            </Link>
+            {user && (
+              <Link
+                href="/messages"
+                className={`text-sm font-medium transition-colors ${
+                  isActive("messages") ? "text-blue-600" : "hover:text-blue-600"
+                }`}
+              >
+                {t('messages.title')}
+              </Link>
+            )}
+            <Link
               href="/dashboard"
               className={`text-sm font-medium transition-colors ${
                 isActive("dashboard") ? "text-blue-600" : "hover:text-blue-600"
@@ -200,20 +218,12 @@ export function MainHeader({ currentPage }: MainHeaderProps) {
             >
               {t('common.dashboard')}
             </Link>
-            <Link
-              href="/about"
-              className={`text-sm font-medium transition-colors ${
-                isActive("about") ? "text-blue-600" : "hover:text-blue-600"
-              }`}
-            >
-              {t('common.howItWorks')}
-            </Link>
             
             <div className="flex items-center space-x-2">
               {user && (
                 <>
-                  <Button variant="ghost" size="icon" asChild>
-                    <Link href="/watchlist">
+                  <Button variant="ghost" size="icon" asChild title="Wishlists">
+                    <Link href="/wishlists">
                       <Heart className="h-5 w-5" />
                     </Link>
                   </Button>
@@ -337,12 +347,6 @@ export function MainHeader({ currentPage }: MainHeaderProps) {
                           <span>{t('common.dashboard')}</span>
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/messages">
-                          <MessageSquare className="mr-2 h-4 w-4" />
-                          <span>Wiadomości</span>
-                        </Link>
-                      </DropdownMenuItem>
                       {(profile?.role === "moderator" || profile?.role === "admin") && (
                         <DropdownMenuItem asChild>
                           <Link href="/support/disputes">
@@ -389,27 +393,38 @@ export function MainHeader({ currentPage }: MainHeaderProps) {
                   {t('common.marketplace')}
                 </Link>
                 <Link
+                  href="/verification"
+                  className="text-lg font-medium hover:text-blue-600 transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t('verification.title')}
+                </Link>
+                {user && (
+                  <Link
+                    href="/messages"
+                    className="text-lg font-medium hover:text-blue-600 transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {t('messages.title')}
+                  </Link>
+                )}
+                <Link
                   href="/dashboard"
                   className="text-lg font-medium hover:text-blue-600 transition-colors"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t('common.dashboard')}
                 </Link>
-                <Link
-                  href="/watchlist"
-                  className="text-lg font-medium hover:text-blue-600 transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {t('common.watchlist')}
-                </Link>
-                <Link
-                  href="/about"
-                  className="text-lg font-medium hover:text-blue-600 transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {t('common.howItWorks')}
-                </Link>
                 <div className="pt-4 border-t space-y-3">
+                  {user && (
+                    <div className="flex items-center justify-center pb-2">
+                      <Button variant="ghost" size="icon" asChild className="h-10 w-10" title="Wishlists">
+                        <Link href="/wishlists" onClick={() => setMobileMenuOpen(false)}>
+                          <Heart className="h-5 w-5" />
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
                   {loading ? (
                     <div className="h-10 w-full animate-pulse bg-slate-200 dark:bg-slate-700 rounded" />
                   ) : user ? (
@@ -438,12 +453,6 @@ export function MainHeader({ currentPage }: MainHeaderProps) {
                         <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
                           <Settings className="mr-2 h-4 w-4" />
                           {t('common.dashboard')}
-                        </Link>
-                      </Button>
-                      <Button variant="outline" className="w-full" asChild>
-                        <Link href="/messages" onClick={() => setMobileMenuOpen(false)}>
-                          <MessageSquare className="mr-2 h-4 w-4" />
-                          Wiadomości
                         </Link>
                       </Button>
                       <Button className="w-full" onClick={() => {
