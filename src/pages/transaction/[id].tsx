@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -472,15 +473,18 @@ export default function TransactionDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-start gap-4">
-                    <div className="h-24 w-24 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-lg overflow-hidden flex-shrink-0">
+                    <div className="relative h-24 w-24 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-lg overflow-hidden flex-shrink-0">
                       {transaction.slab.images && transaction.slab.images.length > 0 ? (
-                        <img 
+                        <Image 
                           src={transaction.slab.images[0]} 
                           alt={transaction.slab.name}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="96px"
+                          loading="lazy"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-3xl">🃏</div>
+                        <div className="absolute inset-0 flex items-center justify-center text-3xl">🃏</div>
                       )}
                     </div>
                     <div className="flex-1">

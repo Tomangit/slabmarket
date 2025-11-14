@@ -7,15 +7,17 @@
 - Stworzenie backlogu produktowego w narzedziu do zarzadzania projektem (np. Linear/Jira) wraz z priorytetyzacja MVP.
 
 ### 2. Setup technologiczny
-- Wdrozenie monitoringu (Sentry, Logflare) oraz podstawowego alertingu.
-- Skonfigurowanie CI/CD pipeline (GitHub Actions) dla automatycznego deployowania.
+- ✅ Wdrozenie monitoringu (Sentry) oraz podstawowego alertingu.
+- ⏳ Wdrozenie Logflare dla monitoringu logów z Supabase.
+- ✅ Skonfigurowanie CI/CD pipeline (GitHub Actions) dla automatycznego deployowania.
 
 ### 3. Projekt UX/UI i design system
 - Opracowanie makiet low/high fidelity dla kluczowych ekranow: landing, katalog, karta produktu, koszyk, checkout, panel sprzedawcy, panel inwestora.
 - Przygotowanie specyfikacji UX dla sekcji Added Today, Hot Deals, Featured oraz przeplywow ochrony kupujacego i sporow.
 
 ### 4. Implementacja backendu i modeli danych
-- Integracja z Redis/Upstash dla kolejek powiadomien, rate limiting i cache wynikow wyszukiwania.
+- ⏳ Integracja z Redis/Upstash dla kolejek powiadomien, rate limiting i cache wynikow wyszukiwania.
+- ✅ Optymalizacja wydajności (indeksy bazy danych, Next.js Image, cache API, React.memo) - migracja wykonana pomyślnie.
 
 ### 5. Import i normalizacja danych Pokemon slabs
 - Lista firm gradingowych (PSA, BGS, CGC, SGC, PCA, itp.) i mapowanie ich formatow certyfikatow.
@@ -33,9 +35,11 @@
 - Integracja z prawdziwymi serwisami kurierskimi dla sledzenia przesylek (obecnie kalkulator kosztów).
 
 ### 7. Testy i jakosc
-- Jednostkowe/integracyjne testy backendu (Edge Functions, ETL), testy e2e (Playwright/Cypress) kluczowych sciezek zakupowych.
-- Testy bezpieczenstwa (SAST/DAST, pentesty zewnetrzne), testy obciazeniowe wyszukiwania i checkoutu.
-- Pilotaż z wybranymi sprzedawcami slabs w celu zebrania feedbacku.
+- ✅ Jednostkowe/integracyjne testy backendu (serwisy), testy e2e (Playwright) kluczowych sciezek zakupowych.
+- ✅ Testy integracyjne dla Edge Functions (verify-certificate, process-payment, check-price-alerts, update-price-history, send-notification-email, process-auctions).
+- ⏳ Testy integracyjne dla ETL.
+- ⏳ Testy bezpieczenstwa (SAST/DAST, pentesty zewnetrzne), testy obciazeniowe wyszukiwania i checkoutu.
+- ⏳ Pilotaż z wybranymi sprzedawcami slabs w celu zebrania feedbacku.
 
 ### 8. Przygotowanie do launchu
 - Finalizacja copy i assetow marketingowych (landing, e-maile, FAQ).
