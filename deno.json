@@ -1,0 +1,14 @@
+{
+  "tasks": {
+    "test:edge": "deno test --allow-env --allow-net supabase/functions/_tests/",
+    "test:edge:watch": "deno test --allow-env --allow-net --watch supabase/functions/_tests/"
+  },
+  "imports": {
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window"],
+    "strict": true
+  }
+}
+

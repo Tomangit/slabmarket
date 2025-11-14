@@ -1,0 +1,42 @@
+name: Test Edge Functions
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "supabase/functions/**"
+      - ".github/workflows/test-edge-functions.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "supabase/functions/**"
+      - ".github/workflows/test-edge-functions.yml"
+
+jobs:
+  test-edge-functions:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.40.0
+
+      - name: Run Edge Function tests
+        run: deno test --allow-env --allow-net supabase/functions/_tests/
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://test.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'test-anon-key' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET || 'test-cron-secret' }}
+          SITE_URL: ${{ secrets.SITE_URL || 'https://test.slabmarket.com' }}
+
+      - name: Check test results
+        if: failure()
+        run: |
+          echo "Edge Function tests failed!"
+          exit 1
+
