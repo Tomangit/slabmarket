@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { useTranslations } from 'next-intl';
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,9 @@ import { useCart } from "@/contexts/CartContext";
 import { setService } from "@/services/setService";
 import type { PokemonSet } from "@/data/pokemonSetCatalog";
 import { SetCombobox } from "@/components/SetCombobox";
+import { AddToWishlistButton } from "@/components/AddToWishlistButton";
+import { useAuth } from "@/contexts/AuthContext";
+import { wishlistService } from "@/services/wishlistService";
 
 type ViewMode = "grid" | "list";
 type SortOption = 
@@ -44,6 +48,7 @@ type SortOption =
 
 export default function MarketplacePage() {
   const t = useTranslations();
+  const { user } = useAuth();
   const [priceRange, setPriceRange] = useState([0, 10000]);
   const [cards, setCards] = useState<MarketplaceCard[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,6 +64,8 @@ export default function MarketplacePage() {
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
   const [hoveredCardImage, setHoveredCardImage] = useState<string | null>(null);
   const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
+  const [showWishlistOnly, setShowWishlistOnly] = useState(false);
+  const [wishlistSlabIds, setWishlistSlabIds] = useState<string[]>([]);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -139,13 +146,91 @@ export default function MarketplacePage() {
     loadCards();
   }, [loadCards]);
 
+  // Load wishlist slab IDs when user is logged in and showWishlistOnly is true
+  useEffect(() => {
+    if (user && showWishlistOnly) {
+      const loadWishlistSlabIds = async () => {
+        try {
+          const slabIds = await wishlistService.getAllSlabsInWishlists(user.id);
+          setWishlistSlabIds(slabIds);
+        } catch (error) {
+          console.error("Error loading wishlist slab IDs:", error);
+          setWishlistSlabIds([]);
+        }
+      };
+      loadWishlistSlabIds();
+    } else {
+      setWishlistSlabIds([]);
+    }
+  }, [user, showWishlistOnly]);
+
+  const loadCards = useCallback(async () => {
+    try {
+      setLoading(true);
+      const selectedSet = selectedSetSlug === "all" ? undefined : sets.find((set) => set.slug === selectedSetSlug);
+      
+      let result;
+      if (showWishlistOnly && user) {
+        // Load cards from wishlists
+        result = await cardService.getCardsInWishlists(user.id, {
+          set_name: selectedSet?.name,
+          min_price: priceRange[0],
+          max_price: priceRange[1],
+          search: searchQuery || undefined,
+          page: currentPage,
+          pageSize,
+          sortBy,
+        });
+      } else {
+        // Load all cards
+        result = await cardService.getAllMarketplaceCards({
+          set_name: selectedSet?.name,
+          min_price: priceRange[0],
+          max_price: priceRange[1],
+          search: searchQuery || undefined,
+          page: currentPage,
+          pageSize,
+          sortBy,
+        });
+      }
+      
+      setCards(result.cards);
+      setTotalCards(result.total);
+      setTotalPages(result.totalPages);
+      
+      // Debug logging
+      console.log("Loaded cards:", {
+        count: result.cards.length,
+        total: result.total,
+        page: result.page,
+        totalPages: result.totalPages,
+        filters: {
+          set_name: selectedSet?.name,
+          min_price: priceRange[0],
+          max_price: priceRange[1],
+          search: searchQuery,
+          sortBy,
+          showWishlistOnly,
+        }
+      });
+    } catch (error) {
+      console.error("Error loading cards:", error);
+      // Set empty state on error
+      setCards([]);
+      setTotalCards(0);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, searchQuery, selectedSetSlug, priceRange, sortBy, sets, pageSize, showWishlistOnly, user]);
+
   // Reset to page 1 when filters change (but not on initial load)
   useEffect(() => {
     if (currentPage !== 1) {
       setCurrentPage(1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, selectedSetSlug, priceRange, sortBy]);
+  }, [searchQuery, selectedSetSlug, priceRange, sortBy, showWishlistOnly]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
@@ -191,6 +276,8 @@ export default function MarketplacePage() {
                   setSelectedEditionVariants={setSelectedEditionVariants}
                   minSubgrade={minSubgrade}
                   setMinSubgrade={setMinSubgrade}
+                  showWishlistOnly={showWishlistOnly}
+                  setShowWishlistOnly={setShowWishlistOnly}
                 />
               </SheetContent>
             </Sheet>
@@ -228,6 +315,8 @@ export default function MarketplacePage() {
                   setSelectedEditionVariants={setSelectedEditionVariants}
                   minSubgrade={minSubgrade}
                   setMinSubgrade={setMinSubgrade}
+                  showWishlistOnly={showWishlistOnly}
+                  setShowWishlistOnly={setShowWishlistOnly}
                 />
               </CardContent>
             </Card>
@@ -611,6 +700,7 @@ function FilterPanel({
   setMinSubgrade: (value: number | null) => void;
 }) {
   const t = useTranslations();
+  const { user } = useAuth();
   const grades = ["10", "9", "8", "7", "6", "5", "4", "3", "2", "1"];
   const editionVariants = [
     { key: "first_edition", label: "First Edition" },
@@ -640,6 +730,23 @@ function FilterPanel({
 
   return (
     <div className="space-y-6">
+      {user && setShowWishlistOnly && (
+        <div>
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showWishlistOnly || false}
+              onChange={(e) => setShowWishlistOnly(e.target.checked)}
+              className="rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm font-medium">Show only cards in my wishlists</span>
+          </label>
+          <p className="text-xs text-slate-500 mt-1">
+            Filter to show only cards that are in your wishlists
+          </p>
+        </div>
+      )}
+
       <div>
         <label className="text-sm font-medium mb-2 block">{t('marketplace.category')}</label>
         <Select defaultValue="pokemon">
@@ -767,7 +874,7 @@ function FilterPanel({
   );
 }
 
-function CardListingCard({ card }: { card: MarketplaceCard }) {
+const CardListingCard = memo(function CardListingCard({ card }: { card: MarketplaceCard }) {
   const t = useTranslations();
   return (
     <Card className="hover:shadow-xl transition-all duration-300 group h-full">
@@ -777,10 +884,15 @@ function CardListingCard({ card }: { card: MarketplaceCard }) {
           className="block relative aspect-[3/4] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-t-lg overflow-hidden"
         >
           {card.image_url ? (
-            <img 
-              src={card.image_url} 
-              alt={card.name} 
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            <Image
+              src={card.image_url}
+              alt={card.name}
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              loading="lazy"
+              placeholder="blur"
+              blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-6xl">
@@ -854,7 +966,7 @@ function CardListingCard({ card }: { card: MarketplaceCard }) {
       </CardFooter>
     </Card>
   );
-}
+});
 
 function AddToCartButton({
   card,

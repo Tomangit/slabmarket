@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { formatPrice } from "@/lib/utils";
 import { messageService } from "@/services/messageService";
+import { AddToWishlistButton } from "@/components/AddToWishlistButton";
 import type { Database } from "@/integrations/supabase/types";
 
 type Slab = Database["public"]["Tables"]["slabs"]["Row"] & {
@@ -199,10 +201,15 @@ export default function SlabDetailPage() {
               <CardContent className="p-0">
                 <div className="relative aspect-[3/4] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-lg overflow-hidden">
                   {slab.images && slab.images.length > 0 ? (
-                    <img
+                    <Image
                       src={slab.images[0]}
                       alt={slab.name}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      priority
+                      placeholder="blur"
+                      blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center text-9xl">
@@ -233,15 +240,14 @@ export default function SlabDetailPage() {
               <div className="flex items-start justify-between mb-2">
                 <h1 className="text-3xl font-bold">{slab.name}</h1>
                 <div className="flex gap-2">
-                  <Button
+                  <AddToWishlistButton
+                    slabId={slab.id}
                     variant="outline"
                     size="icon"
-                    onClick={handleWatchlistToggle}
-                    disabled={!user}
-                    title={user ? (isWatchlisted ? "Remove from watchlist" : "Add to watchlist") : "Sign in to add to watchlist"}
-                  >
-                    <Heart className={`h-5 w-5 ${isWatchlisted ? "fill-red-500 text-red-500" : ""}`} />
-                  </Button>
+                    onAdd={() => {
+                      // Optionally refresh data or show notification
+                    }}
+                  />
                   <Button variant="outline" size="icon">
                     <Share2 className="h-5 w-5" />
                   </Button>

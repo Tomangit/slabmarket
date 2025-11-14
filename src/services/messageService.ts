@@ -140,6 +140,32 @@ export const messageService = {
   },
 
   /**
+   * Get conversations where user sent the last message (sent conversations)
+   */
+  async getSentConversations(userId: string): Promise<Conversation[]> {
+    const conversations = await this.getUserConversations(userId);
+    
+    // Filter conversations where the last message was sent by the current user
+    return conversations.filter((conv) => {
+      if (!conv.last_message) return false;
+      return conv.last_message.sender_id === userId;
+    });
+  },
+
+  /**
+   * Get conversations where user received the last message (received conversations)
+   */
+  async getReceivedConversations(userId: string): Promise<Conversation[]> {
+    const conversations = await this.getUserConversations(userId);
+    
+    // Filter conversations where the last message was received by the current user
+    return conversations.filter((conv) => {
+      if (!conv.last_message) return false;
+      return conv.last_message.recipient_id === userId;
+    });
+  },
+
+  /**
    * Get messages for a conversation
    */
   async getConversationMessages(

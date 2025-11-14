@@ -69,8 +69,8 @@ export default function ConversationPage() {
     } catch (error) {
       console.error("Error loading conversation:", error);
       toast({
-        title: "Błąd",
-        description: "Nie udało się załadować konwersacji",
+        title: t("messages.error"),
+        description: t("messages.errorLoadingConversation"),
         variant: "destructive",
       });
     } finally {
@@ -100,8 +100,8 @@ export default function ConversationPage() {
     } catch (error) {
       console.error("Error sending message:", error);
       toast({
-        title: "Błąd",
-        description: "Nie udało się wysłać wiadomości",
+        title: t("messages.error"),
+        description: t("messages.errorSendingMessage"),
         variant: "destructive",
       });
     } finally {
@@ -111,7 +111,7 @@ export default function ConversationPage() {
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString("pl-PL", {
+    return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -124,10 +124,10 @@ export default function ConversationPage() {
       date.toDateString() === now.toDateString();
     
     if (isToday) {
-      return "Dzisiaj";
+      return t("messages.today");
     }
     
-    return date.toLocaleDateString("pl-PL", {
+    return date.toLocaleDateString("en-US", {
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -157,9 +157,9 @@ export default function ConversationPage() {
         <div className="flex-1 flex items-center justify-center">
           <Card>
             <CardContent className="p-8 text-center">
-              <p className="text-slate-600">Konwersacja nie została znaleziona</p>
+              <p className="text-slate-600">{t("messages.conversationNotFound")}</p>
               <Button asChild className="mt-4">
-                <Link href="/messages">Wróć do wiadomości</Link>
+                <Link href="/messages">{t("messages.backToMessages")}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -180,7 +180,7 @@ export default function ConversationPage() {
           <Button variant="ghost" asChild>
             <Link href="/messages">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Wróć do wiadomości
+              {t("messages.backToMessages")}
             </Link>
           </Button>
         </div>
@@ -200,7 +200,7 @@ export default function ConversationPage() {
               </Avatar>
               <div>
                 <CardTitle className="text-lg">
-                  {otherUser?.full_name || otherUser?.email || "Nieznany użytkownik"}
+                  {otherUser?.full_name || otherUser?.email || t("messages.unknownUser")}
                 </CardTitle>
                 <p className="text-sm text-slate-500">
                   {otherUser?.email}
@@ -214,7 +214,7 @@ export default function ConversationPage() {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.length === 0 ? (
                 <div className="text-center py-12 text-slate-500">
-                  <p>Brak wiadomości. Rozpocznij rozmowę!</p>
+                  <p>{t("messages.noMessages")}. {t("messages.noConversationsDesc")}</p>
                 </div>
               ) : (
                 messages.map((message, index) => {
@@ -291,7 +291,7 @@ export default function ConversationPage() {
             <div className="border-t p-4">
               <div className="flex gap-2">
                 <Textarea
-                  placeholder="Napisz wiadomość..."
+                  placeholder={t("messages.writeMessage")}
                   value={messageContent}
                   onChange={(e) => setMessageContent(e.target.value)}
                   onKeyDown={(e) => {
