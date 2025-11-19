@@ -26,6 +26,7 @@ export type Database = {
           name: string
           rarity: string | null
           set_name: string
+          slug: string | null
           updated_at: string | null
           year: number | null
         }
@@ -39,6 +40,7 @@ export type Database = {
           name: string
           rarity?: string | null
           set_name: string
+          slug?: string | null
           updated_at?: string | null
           year?: number | null
         }
@@ -52,6 +54,7 @@ export type Database = {
           name?: string
           rarity?: string | null
           set_name?: string
+          slug?: string | null
           updated_at?: string | null
           year?: number | null
         }
@@ -665,24 +668,43 @@ export type Database = {
       }
       wishlist_items: {
         Row: {
+          card_id: string | null
           created_at: string | null
           id: string
-          slab_id: string
+          max_price: number | null
+          min_grade: string | null
+          notify_on_new_listing: boolean | null
+          slab_id: string | null
           wishlist_id: string
         }
         Insert: {
+          card_id?: string | null
           created_at?: string | null
           id?: string
-          slab_id: string
+          max_price?: number | null
+          min_grade?: string | null
+          notify_on_new_listing?: boolean | null
+          slab_id?: string | null
           wishlist_id: string
         }
         Update: {
+          card_id?: string | null
           created_at?: string | null
           id?: string
-          slab_id?: string
+          max_price?: number | null
+          min_grade?: string | null
+          notify_on_new_listing?: boolean | null
+          slab_id?: string | null
           wishlist_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "wishlist_items_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "wishlist_items_slab_id_fkey"
             columns: ["slab_id"]
@@ -737,6 +759,296 @@ export type Database = {
           },
         ]
       }
+      conversations: {
+        Row: {
+          id: string
+          participant_1_id: string
+          participant_2_id: string
+          last_message_at: string | null
+          last_message_id: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          participant_1_id: string
+          participant_2_id: string
+          last_message_at?: string | null
+          last_message_id?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          participant_1_id?: string
+          participant_2_id?: string
+          last_message_at?: string | null
+          last_message_id?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_participant_1_id_fkey"
+            columns: ["participant_1_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_participant_2_id_fkey"
+            columns: ["participant_2_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      disputes: {
+        Row: {
+          id: string
+          transaction_id: string
+          created_by_id: string
+          dispute_type: string
+          status: string
+          priority: string
+          title: string
+          description: string
+          evidence_urls: string[] | null
+          moderator_id: string | null
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          transaction_id: string
+          created_by_id: string
+          dispute_type: string
+          status?: string
+          priority?: string
+          title: string
+          description: string
+          evidence_urls?: string[] | null
+          moderator_id?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          transaction_id?: string
+          created_by_id?: string
+          dispute_type?: string
+          status?: string
+          priority?: string
+          title?: string
+          description?: string
+          evidence_urls?: string[] | null
+          moderator_id?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disputes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          id: string
+          conversation_id: string
+          sender_id: string
+          recipient_id: string
+          content: string
+          read_at: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          sender_id: string
+          recipient_id: string
+          content: string
+          read_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          conversation_id?: string
+          sender_id?: string
+          recipient_id?: string
+          content?: string
+          read_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallet_accounts: {
+        Row: {
+          user_id: string
+          balance_cents: number
+          currency: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          balance_cents?: number
+          currency?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          balance_cents?: number
+          currency?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          id: string
+          user_id: string
+          type: string
+          amount_cents: number
+          currency: string
+          reference_id: string | null
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          type: string
+          amount_cents: number
+          currency?: string
+          reference_id?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          type?: string
+          amount_cents?: number
+          currency?: string
+          reference_id?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      variant_capabilities: {
+        Row: {
+          card_id: string
+          first_edition: boolean
+          shadowless: boolean
+          holo: boolean
+          reverse_holo: boolean
+          pokemon_center_edition: boolean
+          prerelease: boolean
+          staff: boolean
+          tournament_card: boolean
+          error_card: boolean
+          foil: boolean | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          card_id: string
+          first_edition?: boolean
+          shadowless?: boolean
+          holo?: boolean
+          reverse_holo?: boolean
+          pokemon_center_edition?: boolean
+          prerelease?: boolean
+          staff?: boolean
+          tournament_card?: boolean
+          error_card?: boolean
+          foil?: boolean | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          card_id?: string
+          first_edition?: boolean
+          shadowless?: boolean
+          holo?: boolean
+          reverse_holo?: boolean
+          pokemon_center_edition?: boolean
+          prerelease?: boolean
+          staff?: boolean
+          tournament_card?: boolean
+          error_card?: boolean
+          foil?: boolean | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "variant_capabilities_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: true
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      set_language_availability: {
+        Row: {
+          set_id: string
+          language: string
+        }
+        Insert: {
+          set_id: string
+          language: string
+        }
+        Update: {
+          set_id?: string
+          language?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       marketplace_cards: {
@@ -772,6 +1084,34 @@ export type Database = {
       increment_slab_views: {
         Args: { slab_id_param: string }
         Returns: undefined
+      }
+      get_auth_uid: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      debug_slabs_insert_check: {
+        Args: { p_seller_id: string }
+        Returns: Json
+      }
+      wallet_apply_tx: {
+        Args: {
+          p_user_id: string
+          p_type: string
+          p_amount_cents: number
+          p_currency?: string
+          p_reference_id?: string | null
+          p_metadata?: Json | null
+        }
+        Returns: {
+          id: string
+          user_id: string
+          type: string
+          amount_cents: number
+          currency: string
+          reference_id: string | null
+          metadata: Json | null
+          created_at: string
+        }
       }
     }
     Enums: {

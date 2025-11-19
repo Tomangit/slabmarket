@@ -365,8 +365,8 @@ export default function TransactionDetailPage() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-600 dark:text-slate-400">Status</span>
-                  <Badge className={getStatusColor(transaction.status || "pending")}>
-                    {transaction.status || "pending"}
+                  <Badge className={getStatusColor(transaction.escrow_status || "pending")}>
+                    {transaction.escrow_status || "pending"}
                   </Badge>
                 </div>
                 <Separator />

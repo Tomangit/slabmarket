@@ -93,8 +93,8 @@ export const priceRecommendationService = {
       let recentSales: any[] = [];
       if (matchingSlabs && matchingSlabs.length > 0) {
         const slabIds = matchingSlabs.map((s) => s.id);
-        const { data: sales } = await supabase
-          .from("transactions")
+        const queryBuilder = supabase.from("transactions") as any;
+        const { data: sales } = await queryBuilder
           .select("price, slab_id")
           .eq("status", "completed")
           .in("slab_id", slabIds)

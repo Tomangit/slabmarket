@@ -89,7 +89,7 @@ export default function DashboardPage() {
       const portfolioValue = activeSlabs.reduce((sum: number, slab: Slab) => sum + (slab.price || 0), 0);
       const completedSales = sales?.filter((t: any) => t.status === "completed") || [];
       const totalSales = completedSales.reduce((sum: number, t: any) => sum + (t.price || 0), 0);
-      const totalPurchasesValue = purchases?.reduce((sum: number, t: any) => sum + (t.price || 0), 0) || 0;
+      const totalPurchasesValue = (purchases || []).reduce((sum: number, t: any) => sum + (t.price || 0), 0);
       const averageSlabValue = activeSlabs.length > 0 ? portfolioValue / activeSlabs.length : 0;
       
       // Calculate portfolio growth (simplified - compare current value to purchase cost)
@@ -232,7 +232,7 @@ export default function DashboardPage() {
         // For now, we'll create a multi-sheet CSV that Excel can open
         
         // Create a simple Excel-compatible format using HTML table
-        let html = `
+        const html = `
           <html>
             <head>
               <meta charset="utf-8">

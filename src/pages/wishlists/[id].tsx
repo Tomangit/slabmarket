@@ -104,11 +104,13 @@ export default function WishlistDetailPage() {
     try {
       addItem({
         id: slab.id,
+        cardId: slab.card_id || "",
         name: slab.name,
         price: slab.price,
-        image: slab.images && slab.images.length > 0 ? slab.images[0] : null,
+        imageUrl: slab.images && slab.images.length > 0 ? slab.images[0] : null,
         grade: slab.grade,
         gradingCompany: slab.grading_company?.name || "Unknown",
+        quantity: 1,
       });
 
       toast({

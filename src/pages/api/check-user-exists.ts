@@ -53,9 +53,9 @@ export default async function handler(
 
     // Check if any user has this email (case-insensitive)
     const normalizedEmail = email.toLowerCase().trim();
-    const userExists = data.users.some(
-      (user) => user.email?.toLowerCase().trim() === normalizedEmail
-    );
+    const userExists = data?.users?.some(
+      (user: { email?: string | null }) => user.email?.toLowerCase().trim() === normalizedEmail
+    ) ?? false;
 
     return res.status(200).json({ exists: userExists });
   } catch (error) {

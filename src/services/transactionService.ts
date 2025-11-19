@@ -14,8 +14,8 @@ export const transactionService = {
       .select(`
         *,
         slab:slabs(*),
-        buyer:buyer_id(full_name, email),
-        seller:seller_id(full_name, email)
+        buyer:profiles!buyer_id(id, full_name, email),
+        seller:profiles!seller_id(id, full_name, email)
       `)
       .single();
 
@@ -31,8 +31,8 @@ export const transactionService = {
       .select(`
         *,
         slab:slabs(*),
-        buyer:buyer_id(full_name, email, avatar_url),
-        seller:seller_id(full_name, email, avatar_url)
+        buyer:profiles!buyer_id(id, full_name, email, avatar_url),
+        seller:profiles!seller_id(id, full_name, email, avatar_url)
       `)
       .eq(column, userId)
       .order("created_at", { ascending: false });
@@ -46,9 +46,9 @@ export const transactionService = {
       .from("transactions")
       .select(`
         *,
-        slab:slabs(*),
-        buyer:buyer_id(full_name, email, avatar_url),
-        seller:seller_id(full_name, email, avatar_url)
+        slab:slabs(*, grading_company:grading_company_id(id, name, code)),
+        buyer:profiles!buyer_id(id, full_name, email, avatar_url),
+        seller:profiles!seller_id(id, full_name, email, avatar_url)
       `)
       .eq("id", id)
       .single();

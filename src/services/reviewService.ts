@@ -2,72 +2,6 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 type Review = Database["public"]["Tables"]["reviews"]["Row"];
-
-export type ReviewWithUser = Review & {
-  reviewer?: { id: string; full_name: string | null; avatar_url: string | null } | null;
-};
-
-export const reviewService = {
-  async getTransactionReviews(transactionId: string): Promise<ReviewWithUser[]> {
-    const { data, error } = await supabase
-      .from("reviews")
-      .select(
-        `
-        *,
-        reviewer:profiles!reviews_reviewer_id_fkey(id, full_name, avatar_url)
-      `
-      )
-      .eq("transaction_id", transactionId)
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    return (data || []) as any;
-  },
-
-  async canUserReviewTransaction(userId: string, transactionId: string): Promise<boolean> {
-    // Already reviewed?
-    const { data: existing } = await supabase
-      .from("reviews")
-      .select("id")
-      .eq("transaction_id", transactionId)
-      .eq("reviewer_id", userId)
-      .maybeSingle();
-    if (existing) return false;
-
-    // Check transaction participation and status
-    const { data: tx, error: txErr } = await supabase
-      .from("transactions")
-      .select("id, buyer_id, seller_id, shipping_status, status, escrow_status")
-      .eq("id", transactionId)
-      .maybeSingle();
-    if (txErr || !tx) return false;
-    const isParticipant = tx.buyer_id === userId || tx.seller_id === userId;
-    const delivered = tx.shipping_status === "delivered" || tx.status === "completed";
-    return isParticipant && delivered;
-  },
-
-  async createReview(input: {
-    transaction_id: string;
-    reviewer_id: string;
-    reviewee_id: string;
-    rating: number;
-    comment?: string;
-  }): Promise<Review> {
-    const payload = {
-      ...input,
-      rating: Math.max(1, Math.min(5, Math.round(input.rating))),
-      comment: (input.comment || "").slice(0, 2000),
-    };
-    const { data, error } = await supabase.from("reviews").insert(payload).select("*").single();
-    if (error) throw error;
-    return data as any;
-  },
-};
-
-
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
-
-type Review = Database["public"]["Tables"]["reviews"]["Row"];
 type ReviewInsert = Database["public"]["Tables"]["reviews"]["Insert"];
 type ReviewUpdate = Database["public"]["Tables"]["reviews"]["Update"];
 
@@ -85,7 +19,7 @@ export const reviewService = {
       .from("reviews")
       .select(`
         *,
-        reviewer:reviewer_id(id, full_name, avatar_url)
+        reviewer:profiles!reviewer_id(id, full_name, avatar_url)
       `)
       .eq("transaction_id", transactionId)
       .order("created_at", { ascending: false });
@@ -99,7 +33,7 @@ export const reviewService = {
       .from("reviews")
       .select(`
         *,
-        reviewer:reviewer_id(id, full_name, avatar_url),
+        reviewer:profiles!reviewer_id(id, full_name, avatar_url),
         transaction:transactions(id, slab_id, price)
       `)
       .eq("reviewee_id", userId)
@@ -136,7 +70,7 @@ export const reviewService = {
       .insert(review)
       .select(`
         *,
-        reviewer:reviewer_id(id, full_name, avatar_url)
+        reviewer:profiles!reviewer_id(id, full_name, avatar_url)
       `)
       .single();
 
@@ -151,7 +85,7 @@ export const reviewService = {
       .eq("id", id)
       .select(`
         *,
-        reviewer:reviewer_id(id, full_name, avatar_url)
+        reviewer:profiles!reviewer_id(id, full_name, avatar_url)
       `)
       .single();
 

@@ -40,7 +40,7 @@ export const disputeService = {
       .single();
 
     if (error) throw error;
-    return data as DisputeWithRelations;
+    return data as unknown as DisputeWithRelations;
   },
 
   async getDisputeById(id: string) {
@@ -49,14 +49,14 @@ export const disputeService = {
       .select(`
         *,
         transaction:transactions(id, buyer_id, seller_id, price, slab_id, escrow_status, shipping_status),
-        created_by:created_by_id(id, full_name, email),
-        moderator:moderator_id(id, full_name, email)
+        created_by:profiles!created_by_id(id, full_name, email),
+        moderator:profiles!moderator_id(id, full_name, email)
       `)
       .eq("id", id)
       .single();
 
     if (error) throw error;
-    return data as DisputeWithRelations;
+    return data as unknown as DisputeWithRelations;
   },
 
   async getUserDisputes(userId: string) {
@@ -70,7 +70,7 @@ export const disputeService = {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return (data as DisputeWithRelations[]) || [];
+    return (data as unknown as DisputeWithRelations[]) || [];
   },
 
   async getAllDisputes(filters?: {
@@ -83,8 +83,8 @@ export const disputeService = {
       .select(`
         *,
         transaction:transactions(id, buyer_id, seller_id, price, slab_id, escrow_status, shipping_status),
-        created_by:created_by_id(id, full_name, email),
-        moderator:moderator_id(id, full_name, email)
+        created_by:profiles!created_by_id(id, full_name, email),
+        moderator:profiles!moderator_id(id, full_name, email)
       `)
       .order("created_at", { ascending: false });
 
@@ -103,7 +103,7 @@ export const disputeService = {
     const { data, error } = await query;
 
     if (error) throw error;
-    return (data as DisputeWithRelations[]) || [];
+    return (data as unknown as DisputeWithRelations[]) || [];
   },
 
   async updateDispute(id: string, updates: DisputeUpdate) {
@@ -120,7 +120,7 @@ export const disputeService = {
       .single();
 
     if (error) throw error;
-    return data as DisputeWithRelations;
+    return data as unknown as DisputeWithRelations;
   },
 
   async assignModerator(disputeId: string, moderatorId: string) {

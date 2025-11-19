@@ -93,7 +93,7 @@ export const slabService = {
 
   async getSlabById(id: string) {
     // Try to get slab directly first
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from("slabs")
       .select(`
         *,
@@ -300,7 +300,7 @@ export const slabService = {
     }
 
     // Try to insert directly first
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from("slabs")
       .insert(slab)
       .select()
@@ -821,7 +821,7 @@ export const slabService = {
       query = query.eq("status", filters.status);
     }
 
-    let { data, error } = await query;
+    const { data, error } = await query;
 
     console.log("[SlabService] Direct query result:", {
       hasError: !!error,

@@ -59,7 +59,7 @@ export const shippingService = {
     options: ShippingOptions
   ): ShippingCost {
     // Calculate base shipping cost based on item value
-    let baseCost = SHIPPING_RATES.baseRates.find(
+    const baseCost = SHIPPING_RATES.baseRates.find(
       (rate) => itemValue <= rate.maxValue
     )?.cost || SHIPPING_RATES.baseRates[SHIPPING_RATES.baseRates.length - 1].cost;
 

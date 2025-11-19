@@ -65,29 +65,3 @@ export function addBreadcrumb(breadcrumb: Sentry.Breadcrumb) {
   Sentry.addBreadcrumb(breadcrumb);
 }
 
-/**
- * Start a transaction for performance monitoring
- */
-export function startTransaction(
-  name: string,
-  op: string = "navigation"
-): Sentry.Transaction | undefined {
-  if (typeof window === "undefined") {
-    // Server-side, use Sentry.startTransaction
-    return Sentry.startTransaction({
-      name,
-      op,
-    });
-  }
-  return undefined;
-}
-
-/**
- * Capture a transaction
- */
-export function finishTransaction(transaction: Sentry.Transaction | undefined) {
-  if (transaction) {
-    transaction.finish();
-  }
-}
-

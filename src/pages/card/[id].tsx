@@ -393,7 +393,7 @@ export default function CardDetailPage() {
           "graded card",
           "trading card",
           "Pokemon card",
-          card.grading_company?.name || "PSA",
+          "PSA",
           "slab",
           "authenticated card",
         ]}

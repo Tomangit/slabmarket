@@ -254,7 +254,7 @@ export default function SlabDetailPage(): JSX.Element {
                   <div>
                     <p className="font-semibold text-green-900 dark:text-green-100">Certificate Verified</p>
                     <p className="text-sm text-green-700 dark:text-green-300">
-                      This slab has been verified against {slab.gradingCompany} official database
+                      This slab has been verified against {slab.grading_company?.name || "the grading company"} official database
                     </p>
                   </div>
                 </CardContent>

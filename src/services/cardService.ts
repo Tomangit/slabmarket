@@ -407,8 +407,8 @@ export const cardService = {
     if (!data && !error) {
       console.log("[cardService] Card not found in cards table, trying marketplace_cards view...");
       
-      const { data: viewData, error: viewError } = await supabase
-        .from("marketplace_cards")
+      const queryBuilder = supabase.from("marketplace_cards") as any;
+      const { data: viewData, error: viewError } = await queryBuilder
         .select("*")
         .eq("slug", slug)
         .maybeSingle();
@@ -503,7 +503,7 @@ export const cardService = {
     tournament_card?: boolean;
     error_card?: boolean;
   }) {
-    let query = supabase
+    let query: any = supabase
       .from("slabs")
       .select(`
         *,
@@ -567,7 +567,7 @@ export const cardService = {
     console.log("[CardService] Fetching listings for card_id:", cardId);
     
     // Try direct query first
-    let { data, error } = await query;
+    const { data, error } = await query;
     
     console.log("[CardService] Direct query result:", {
       hasError: !!error,
@@ -669,6 +669,7 @@ export const cardService = {
     staff: boolean;
     tournament_card: boolean;
     error_card: boolean;
+    foil: boolean;
   }> {
     // First, get the card details to check set name
     const { data: card, error: cardError } = await supabase
@@ -689,6 +690,7 @@ export const cardService = {
         staff: false,
         tournament_card: false,
         error_card: false,
+        foil: false,
       };
     }
 
@@ -696,7 +698,7 @@ export const cardService = {
     try {
       const { data: capsRow } = await supabase
         .from("variant_capabilities")
-        .select("first_edition, shadowless, holo, reverse_holo, pokemon_center_edition, prerelease, staff, tournament_card, error_card")
+        .select("first_edition, shadowless, holo, reverse_holo, pokemon_center_edition, prerelease, staff, tournament_card, error_card, foil")
         .eq("card_id", cardId)
         .maybeSingle();
       if (capsRow) {
@@ -710,6 +712,7 @@ export const cardService = {
           staff: !!capsRow.staff,
           tournament_card: !!capsRow.tournament_card,
           error_card: !!capsRow.error_card,
+          foil: !!capsRow.foil || false,
         };
       }
     } catch (_) {
@@ -719,7 +722,7 @@ export const cardService = {
     // Check which variants exist in existing listings
     const { data: slabs, error: slabsError } = await supabase
       .from("slabs")
-      .select("first_edition, shadowless, holo, reverse_holo, pokemon_center_edition, prerelease, staff, tournament_card, error_card")
+      .select("first_edition, shadowless, holo, reverse_holo, pokemon_center_edition, prerelease, staff, tournament_card, error_card, foil")
       .eq("card_id", cardId)
       .eq("status", "active");
 
@@ -733,6 +736,7 @@ export const cardService = {
       staff: false,
       tournament_card: false,
       error_card: false,
+      foil: false,
     };
 
     // Check existing listings for variants
@@ -747,6 +751,7 @@ export const cardService = {
         if (slab.staff) variants.staff = true;
         if (slab.tournament_card) variants.tournament_card = true;
         if (slab.error_card) variants.error_card = true;
+        if (slab.foil) variants.foil = true;
       });
     }
 
@@ -906,6 +911,7 @@ export const cardService = {
   async getCardsInWishlists(userId: string, filters?: {
     category_id?: string;
     set_name?: string;
+    rarity?: string;
     min_price?: number;
     max_price?: number;
     search?: string;
