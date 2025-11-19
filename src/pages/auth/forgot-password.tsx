@@ -1,6 +1,7 @@
 
 import { useState, FormEvent } from "react";
 import { useTranslations } from 'next-intl';
+import { GetStaticProps } from 'next';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Award, Mail, ArrowLeft, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { authService } from "@/services/authService";
+
+export const getStaticProps: GetStaticProps = async () => {
+  return {
+    props: {},
+  };
+};
 
 export default function ForgotPasswordPage() {
   const t = useTranslations();

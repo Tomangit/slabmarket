@@ -256,6 +256,7 @@
     "processing": "Processing...",
     "orderSummary": "Order Summary",
     "orderSummaryDesc": "Review the slabs and totals before confirming.",
+    "total": "Total",
     "protectionEscrow": "Protection & escrow (stub)",
     "checkoutComplete": "Checkout complete",
     "checkoutCompleteDesc": "Test payment has been approved. In a real system, we would start the fulfillment process.",
