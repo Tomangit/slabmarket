@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MainHeader } from "@/components/MainHeader";
 import { Footer } from "@/components/Footer";
-import { Package, Heart, TrendingUp, ShoppingCart, DollarSign, Eye, Edit, Trash2, Sparkles, Download } from "lucide-react";
+import { Package, Heart, TrendingUp, ShoppingCart, DollarSign, Eye, Edit, Trash2, Sparkles, Download, LayoutGrid, List } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/router";
@@ -44,6 +44,8 @@ export default function DashboardPage() {
   
   const [salesTransactions, setSalesTransactions] = useState<any[]>([]);
   const [portfolioHistory, setPortfolioHistory] = useState<{ date: string; value: number }[]>([]);
+  const [listingsView, setListingsView] = useState<"grid" | "list">("list");
+  const [listingsStatusFilter, setListingsStatusFilter] = useState<string>("all");
 
   useEffect(() => {
     if (!authLoading) {
@@ -60,12 +62,22 @@ export default function DashboardPage() {
 
     try {
       setLoading(true);
+      console.log("[Dashboard] Loading dashboard data for user:", user.id);
+      
       const [slabs, watchlist, purchases, sales] = await Promise.all([
         slabService.getUserSlabs(user.id),
         watchlistService.getUserWatchlist(user.id),
         transactionService.getUserTransactions(user.id, "buyer").catch(() => []),
         transactionService.getUserTransactions(user.id, "seller").catch(() => []),
       ]);
+
+      console.log("[Dashboard] Loaded data:", {
+        slabsCount: slabs?.length || 0,
+        watchlistCount: watchlist?.length || 0,
+        purchasesCount: purchases?.length || 0,
+        salesCount: sales?.length || 0,
+        slabs: slabs
+      });
 
       setUserSlabs(slabs || []);
       setWatchlistItems(watchlist || []);
@@ -322,11 +334,14 @@ export default function DashboardPage() {
     if (!confirm("Are you sure you want to delete this listing?")) return;
 
     try {
+      console.log('[Dashboard] Attempting to delete slab:', slabId);
       await slabService.deleteSlab(slabId);
+      console.log('[Dashboard] Successfully deleted slab:', slabId);
       await loadDashboardData();
-    } catch (error) {
-      console.error("Error deleting slab:", error);
-      alert("Failed to delete listing");
+    } catch (error: any) {
+      console.error("[Dashboard] Error deleting slab:", error);
+      const errorMessage = error?.message || error?.error || "Unknown error occurred";
+      alert(`Failed to delete listing: ${errorMessage}`);
     }
   };
 
@@ -472,18 +487,71 @@ export default function DashboardPage() {
           </TabsContent>
 
           <TabsContent value="listings" className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center flex-wrap gap-4">
               <div>
                 <h2 className="text-2xl font-bold">Your Listings</h2>
                 <p className="text-slate-600 dark:text-slate-400">Manage your active and sold listings</p>
               </div>
-              <Button asChild>
-                <Link href="/sell">
-                  <Package className="h-4 w-4 mr-2" />
-                  New Listing
-                </Link>
-              </Button>
+              <div className="flex gap-2">
+                <Button asChild variant="outline">
+                  <Link href="/dashboard/bulk">
+                    <Download className="h-4 w-4 mr-2" />
+                    Bulk Tools
+                  </Link>
+                </Button>
+                <Button asChild>
+                  <Link href="/sell">
+                    <Package className="h-4 w-4 mr-2" />
+                    New Listing
+                  </Link>
+                </Button>
+              </div>
             </div>
+
+            {/* Filters and View Toggle */}
+            {userSlabs.length > 0 && (
+              <div className="flex justify-between items-center gap-4 flex-wrap">
+                <div className="flex gap-2">
+                  <Button
+                    variant={listingsStatusFilter === "all" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setListingsStatusFilter("all")}
+                  >
+                    All ({userSlabs.length})
+                  </Button>
+                  <Button
+                    variant={listingsStatusFilter === "active" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setListingsStatusFilter("active")}
+                  >
+                    Active ({userSlabs.filter((s: Slab) => s.status === "active").length})
+                  </Button>
+                  <Button
+                    variant={listingsStatusFilter === "sold" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setListingsStatusFilter("sold")}
+                  >
+                    Sold ({userSlabs.filter((s: Slab) => s.status === "sold").length})
+                  </Button>
+                </div>
+                <div className="flex gap-2 border rounded-lg p-1">
+                  <Button
+                    variant={listingsView === "grid" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setListingsView("grid")}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={listingsView === "list" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setListingsView("list")}
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {userSlabs.length === 0 ? (
               <Card>
@@ -496,8 +564,10 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             ) : (
+              <>
+                {listingsView === "grid" ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {userSlabs.map((slab) => (
+                    {(listingsStatusFilter === "all" ? userSlabs : userSlabs.filter((s: Slab) => s.status === listingsStatusFilter)).map((slab) => (
                   <Card key={slab.id}>
                     <CardHeader className="p-0">
                       <div className="relative aspect-[3/4] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-t-lg overflow-hidden">
@@ -563,6 +633,96 @@ export default function DashboardPage() {
                   </Card>
                 ))}
               </div>
+                ) : (
+                  <div className="space-y-4">
+                    {(listingsStatusFilter === "all" ? userSlabs : userSlabs.filter((s: Slab) => s.status === listingsStatusFilter)).map((slab) => (
+                      <Card key={slab.id} className="hover:shadow-lg transition-shadow">
+                        <CardContent className="p-6">
+                          <div className="flex flex-col md:flex-row gap-6">
+                            {/* Image */}
+                            <div className="relative h-32 w-32 md:h-40 md:w-40 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-lg overflow-hidden flex-shrink-0">
+                              {slab.images && slab.images.length > 0 ? (
+                                <img src={slab.images[0]} alt={slab.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="absolute inset-0 flex items-center justify-center text-4xl">🃏</div>
+                              )}
+                              <div className="absolute top-2 right-2 flex gap-1 flex-col">
+                                {slab.listing_type === "featured" && (
+                                  <Badge className="bg-yellow-600 text-xs">
+                                    <Sparkles className="h-2 w-2 mr-1" />
+                                    Featured
+                                  </Badge>
+                                )}
+                                <Badge className={slab.status === "active" ? "bg-green-600" : slab.status === "sold" ? "bg-blue-600" : "bg-slate-600"} variant="outline">
+                                  {slab.status}
+                                </Badge>
+                              </div>
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 space-y-3">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                  <h3 className="text-lg font-semibold mb-1">{slab.name}</h3>
+                                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                                    {slab.grading_company?.name || slab.grading_company?.code} {slab.grade} • {slab.set_name}
+                                    {slab.card_number && ` • #${slab.card_number}`}
+                                  </p>
+                                  {slab.cert_number && (
+                                    <p className="text-xs text-slate-500 mt-1">Cert #{slab.cert_number}</p>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-2xl font-bold text-blue-600">${formatPrice(slab.price)}</p>
+                                  <p className="text-xs text-slate-500 mt-1">
+                                    {slab.created_at ? new Date(slab.created_at).toLocaleDateString() : "Unknown date"}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Stats */}
+                              <div className="flex items-center gap-6 text-sm text-slate-600 dark:text-slate-400">
+                                <span className="flex items-center gap-1">
+                                  <Eye className="h-4 w-4" />
+                                  {slab.views || 0} views
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Heart className="h-4 w-4" />
+                                  {slab.watchlist_count || 0} watchers
+                                </span>
+                              </div>
+
+                              {/* Actions */}
+                              <div className="flex gap-2 pt-2 border-t">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => router.push(`/sell?edit=${slab.id}`)}
+                                >
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit
+                                </Button>
+                                <Button size="sm" asChild variant="outline">
+                                  <Link href={`/slab/${slab.id}`}>View Details</Link>
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleDeleteSlab(slab.id)}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </TabsContent>
 

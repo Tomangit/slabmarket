@@ -60,7 +60,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      // Clear sync error when user logs out
+      setLastSyncError(null);
+      return;
+    }
+    
+    // Only sync if there are items or if we need to clear the cart
     const sync = async () => {
       setIsSyncing(true);
       try {
@@ -68,15 +74,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setLastSyncError(null);
       } catch (error) {
         console.warn("Failed to sync cart with Supabase:", error);
-        setLastSyncError(
-          error instanceof Error ? error.message : "Nieudana synchronizacja koszyka.",
-        );
+        // Only show error if it's not a network/connection issue
+        const errorMessage = error instanceof Error ? error.message : "Nieudana synchronizacja koszyka.";
+        // Don't show error for common non-critical issues
+        if (!errorMessage.includes("network") && !errorMessage.includes("timeout")) {
+          setLastSyncError(errorMessage);
+        }
       } finally {
         setIsSyncing(false);
       }
     };
 
-    sync();
+    // Debounce sync to avoid too many requests
+    const timeoutId = setTimeout(sync, 500);
+    return () => clearTimeout(timeoutId);
   }, [items, user]);
 
   const addItem = useCallback((item: CartItem) => {

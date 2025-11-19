@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
@@ -10,16 +9,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { MainHeader } from "@/components/MainHeader";
 import { Footer } from "@/components/Footer";
-import { ShieldCheck, TrendingUp, Heart, Share2, Eye, Package, AlertCircle, Star, Bell, DollarSign, MessageSquare } from "lucide-react";
+import { ShieldCheck, TrendingUp, Heart, Share2, Eye, Package, AlertCircle, Star, Bell, DollarSign, MessageSquare, BarChart3 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { slabService } from "@/services/slabService";
 import { watchlistService } from "@/services/watchlistService";
-import { priceHistoryService, type PricePoint } from "@/services/priceHistoryService";
+import { priceHistoryService, type PricePoint, type MarketIndex } from "@/services/priceHistoryService";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
+import { PriceDisplay } from "@/components/PriceDisplay";
+import { PriceHistoryChart } from "@/components/PriceHistoryChart";
 import { formatPrice } from "@/lib/utils";
 import { messageService } from "@/services/messageService";
 import { AddToWishlistButton } from "@/components/AddToWishlistButton";
@@ -31,7 +32,7 @@ type Slab = Database["public"]["Tables"]["slabs"]["Row"] & {
   seller: { id: string; full_name: string | null; avatar_url: string | null; email: string | null } | null;
 };
 
-export default function SlabDetailPage() {
+export default function SlabDetailPage(): JSX.Element {
   const router = useRouter();
   const { id } = router.query;
   const t = useTranslations();
@@ -47,12 +48,8 @@ export default function SlabDetailPage() {
   const [updatingPriceAlert, setUpdatingPriceAlert] = useState(false);
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([]);
   const [priceHistoryLoading, setPriceHistoryLoading] = useState(false);
-
-  useEffect(() => {
-    if (id && typeof id === "string") {
-      loadSlabData(id);
-    }
-  }, [id, user]);
+  const [marketIndex, setMarketIndex] = useState<MarketIndex | null>(null);
+  const [marketIndexLoading, setMarketIndexLoading] = useState(false);
 
   const loadSlabData = async (slabId: string) => {
     try {
@@ -81,6 +78,9 @@ export default function SlabDetailPage() {
 
       // Load price history
       loadPriceHistory(slabId);
+      
+      // Load market index
+      loadMarketIndex(slabData);
     } catch (error) {
       console.error("Error loading slab:", error);
     } finally {
@@ -97,6 +97,25 @@ export default function SlabDetailPage() {
       console.error("Error loading price history:", error);
     } finally {
       setPriceHistoryLoading(false);
+    }
+  };
+
+  const loadMarketIndex = async (slabData: Slab) => {
+    if (!slabData.grading_company?.id || !slabData.grade) return;
+    
+    try {
+      setMarketIndexLoading(true);
+      const index = await priceHistoryService.getGradeIndex(
+        slabData.grade,
+        slabData.grading_company.id,
+        slabData.category_id || undefined,
+        30
+      );
+      setMarketIndex(index);
+    } catch (error) {
+      console.error("Error loading market index:", error);
+    } finally {
+      setMarketIndexLoading(false);
     }
   };
 
@@ -148,6 +167,13 @@ export default function SlabDetailPage() {
     router.push("/checkout");
   };
 
+  useEffect(() => {
+    if (id && typeof id === "string") {
+      loadSlabData(id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -183,6 +209,7 @@ export default function SlabDetailPage() {
   }
 
   return (
+    <>
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
       <MainHeader currentPage="marketplace" />
 
@@ -199,13 +226,13 @@ export default function SlabDetailPage() {
           <div className="space-y-4">
             <Card>
               <CardContent className="p-0">
-                <div className="relative aspect-[3/4] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-lg overflow-hidden">
+                <div className="relative aspect-[3/4] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-lg overflow-hidden flex items-center justify-center">
                   {slab.images && slab.images.length > 0 ? (
                     <Image
                       src={slab.images[0]}
                       alt={slab.name}
                       fill
-                      className="object-cover"
+                      className="object-contain"
                       sizes="(max-width: 768px) 100vw, 50vw"
                       priority
                       placeholder="blur"
@@ -278,9 +305,24 @@ export default function SlabDetailPage() {
 
               <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-6 mb-6">
                 <div className="flex items-baseline gap-2 mb-2">
-                  <span className="text-4xl font-bold">${formatPrice(slab.price)}</span>
-                  <span className="text-slate-600 dark:text-slate-400">{slab.currency}</span>
+                  <span className="text-4xl font-bold">
+                    <PriceDisplay price={slab.price} fromCurrency={(slab.currency as any) || "USD"} />
+                  </span>
                 </div>
+              </div>
+
+              {/* Compare Prices Button */}
+              <div className="mb-6">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full md:w-auto"
+                >
+                  <Link href={`/compare?cardName=${encodeURIComponent(slab.name || "")}${slab.set_name ? `&setId=${encodeURIComponent(slab.set_name)}` : ""}`}>
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Compare Prices
+                  </Link>
+                </Button>
               </div>
 
               {/* Price Alert Section */}
@@ -359,7 +401,7 @@ export default function SlabDetailPage() {
                       <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg">
                         <p className="text-sm text-green-900 dark:text-green-100">
                           <Bell className="h-4 w-4 inline mr-1" />
-                          Alert active: Notify me when price drops below ${formatPrice(priceAlert)}
+                          Alert active: Notify me when price drops below <PriceDisplay price={priceAlert} fromCurrency={(slab?.currency as any) || "USD"} />
                         </p>
                       </div>
                     )}
@@ -463,7 +505,11 @@ export default function SlabDetailPage() {
                 <div className="flex justify-between">
                   <span className="text-slate-600 dark:text-slate-400">Shipping Cost</span>
                   <span className="font-semibold">
-                    {slab.shipping_cost ? `$${formatPrice(slab.shipping_cost)}` : "Contact seller"}
+                    {slab.shipping_cost ? (
+                      <PriceDisplay price={slab.shipping_cost} fromCurrency={(slab.currency as any) || "USD"} />
+                    ) : (
+                      "Contact seller"
+                    )}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -570,34 +616,110 @@ export default function SlabDetailPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="history" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Price History</CardTitle>
-                  <CardDescription>Historical price data for this slab</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {priceHistoryLoading ? (
-                    <div className="py-8 text-center text-slate-600 dark:text-slate-400">
-                      Loading price history...
+            <TabsContent value="history" className="mt-6 space-y-6">
+              {/* Price History Chart */}
+              {priceHistoryLoading ? (
+                <Card>
+                  <CardContent className="py-8">
+                    <div className="text-center">
+                      <p className="text-slate-600 dark:text-slate-400">Loading price history...</p>
                     </div>
-                  ) : priceHistory.length === 0 ? (
-                    <div className="py-8 text-center">
-                      <p className="text-slate-600 dark:text-slate-400 mb-2">
-                        No price history available yet
-                      </p>
-                      <p className="text-sm text-slate-500">
-                        Price history will be tracked as the listing price changes
+                  </CardContent>
+                </Card>
+              ) : priceHistory.length > 0 ? (
+                <PriceHistoryChart
+                  data={priceHistory}
+                  currentPrice={slab?.price}
+                  title="Price History"
+                  height={300}
+                />
+              ) : (
+                <Card>
+                  <CardContent className="py-8">
+                    <div className="text-center">
+                      <p className="text-slate-600 dark:text-slate-400">No price history available yet</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">
+                        Price history will be recorded daily once the listing is active
                       </p>
                     </div>
-                  ) : (
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Market Index */}
+              {slab && slab.grading_company?.id && slab.grade && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Market Index</CardTitle>
+                    <CardDescription>
+                      Average price for {slab.grading_company?.code || ''} {slab.grade} slabs
+                      {slab.category?.name ? ` in ${slab.category.name}` : ''}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {marketIndexLoading ? (
+                      <div className="text-center py-8">
+                        <p className="text-slate-600 dark:text-slate-400">Loading market index...</p>
+                      </div>
+                    ) : marketIndex ? (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Current Value</p>
+                            <p className="text-2xl font-bold">
+                              <PriceDisplay price={marketIndex.currentValue} fromCurrency={(slab.currency as any) || "USD"} />
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Previous Value</p>
+                            <p className="text-2xl font-bold">
+                              <PriceDisplay price={marketIndex.previousValue} fromCurrency={(slab.currency as any) || "USD"} />
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Change (30 days)</p>
+                            <p className={`text-2xl font-bold ${marketIndex.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                              {marketIndex.change >= 0 ? '+' : ''}
+                              <PriceDisplay price={marketIndex.change} fromCurrency={(slab.currency as any) || "USD"} />
+                              {' '}
+                              ({marketIndex.changePercent >= 0 ? '+' : ''}
+                              {marketIndex.changePercent.toFixed(1)}%)
+                            </p>
+                          </div>
+                        </div>
+                        <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-slate-600 dark:text-slate-400">Based on {marketIndex.dataPoints} data points</span>
+                            <span className="text-slate-600 dark:text-slate-400">{marketIndex.timeRange}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-slate-600 dark:text-slate-400">Insufficient market data</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">
+                          Market index will be available once there's enough price history data
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Price History Table - Keep for reference */}
+              {priceHistory.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Price History Table</CardTitle>
+                  </CardHeader>
+                  <CardContent>
                     <div className="space-y-4">
                       {/* Price Statistics */}
                       <div className="grid grid-cols-3 gap-4">
                         <div className="text-center p-4 bg-slate-50 dark:bg-slate-900 rounded-lg">
                           <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Current Price</p>
                           <p className="text-2xl font-bold text-blue-600">
-                            ${formatPrice(slab?.price || 0)}
+                            <PriceDisplay price={slab?.price || 0} fromCurrency={(slab.currency as any) || "USD"} />
                           </p>
                         </div>
                         {priceHistory.length > 1 && (() => {
@@ -610,7 +732,8 @@ export default function SlabDetailPage() {
                               <div className="text-center p-4 bg-slate-50 dark:bg-slate-900 rounded-lg">
                                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Price Change</p>
                                 <p className={`text-2xl font-bold ${change >= 0 ? "text-green-600" : "text-red-600"}`}>
-                                  {change >= 0 ? "+" : ""}${formatPrice(change)}
+                                  {change >= 0 ? "+" : ""}
+                                  <PriceDisplay price={change} fromCurrency={(slab.currency as any) || "USD"} />
                                 </p>
                               </div>
                               <div className="text-center p-4 bg-slate-50 dark:bg-slate-900 rounded-lg">
@@ -687,9 +810,9 @@ export default function SlabDetailPage() {
                         </div>
                       </div>
                     </div>
-                  )}
                 </CardContent>
               </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="cert" className="mt-6">
@@ -743,5 +866,6 @@ export default function SlabDetailPage() {
 
       <Footer />
     </div>
+    </>
   );
 }

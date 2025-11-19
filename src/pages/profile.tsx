@@ -1,21 +1,31 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { MainHeader } from "@/components/MainHeader";
 import { Footer } from "@/components/Footer";
-import { User, ShieldCheck, Bell, CreditCard, Lock, Star, Mail } from "lucide-react";
+import { User, ShieldCheck, Bell, CreditCard, Lock, Star, Mail, DollarSign } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ProfilePage() {
+  const t = useTranslations();
+  const { user, profile, loading: authLoading } = useAuth();
+  const { currency, setCurrency, supportedCurrencies, loading: currencyLoading } = useCurrency();
+  const { toast } = useToast();
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [priceAlerts, setPriceAlerts] = useState(true);
   const [marketingEmails, setMarketingEmails] = useState(false);
+  const [savingCurrency, setSavingCurrency] = useState(false);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
@@ -101,6 +111,47 @@ export default function ProfilePage() {
                       rows={4}
                       defaultValue="Pokemon TCG collector since 1999. Specializing in PSA 10 vintage cards and first edition sets."
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="currency">{t('profile.preferredCurrency')}</Label>
+                    <Select
+                      value={currency}
+                      onValueChange={async (value) => {
+                        try {
+                          setSavingCurrency(true);
+                          await setCurrency(value as typeof currency);
+                          toast({
+                            title: t('profile.currencyUpdated'),
+                            description: t('profile.currencyUpdatedDesc'),
+                          });
+                        } catch (error) {
+                          console.error("Error updating currency:", error);
+                          toast({
+                            title: t('profile.error'),
+                            description: t('profile.errorUpdatingCurrency'),
+                            variant: "destructive",
+                          });
+                        } finally {
+                          setSavingCurrency(false);
+                        }
+                      }}
+                      disabled={savingCurrency || currencyLoading}
+                    >
+                      <SelectTrigger id="currency">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {supportedCurrencies.map((curr) => (
+                          <SelectItem key={curr.code} value={curr.code}>
+                            {curr.symbol} {curr.name} ({curr.code})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      {t('profile.currencyDesc')}
+                    </p>
                   </div>
 
                   <Button>Save Changes</Button>

@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
-import { useTranslations } from 'next-intl';
+import Image from "next/image";
+import enMessages from "../../messages/en.json";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
@@ -13,12 +14,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Menu, Bell, Heart, ShoppingCart, User, LogOut, Settings, ShieldCheck, MessageSquare } from "lucide-react";
+import { Menu, Bell, Heart, ShoppingCart, User, LogOut, Settings, ShieldCheck, MessageSquare, DollarSign, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { useRouter } from "next/router";
 import { notificationService } from "@/services/notificationService";
+import { ThemeSwitch } from "@/components/ThemeSwitch";
 import type { Database } from "@/integrations/supabase/types";
+import { walletService } from "@/services/walletService";
 
 type Notification = Database["public"]["Tables"]["notifications"]["Row"];
 
@@ -27,15 +31,40 @@ interface MainHeaderProps {
 }
 
 export function MainHeader({ currentPage }: MainHeaderProps) {
-  const t = useTranslations();
+  const t = (key: string): string => {
+    const parts = key.split(".");
+    let node: any = enMessages as any;
+    for (const p of parts) {
+      node = node?.[p];
+      if (node == null) break;
+    }
+    return typeof node === "string" ? node : key;
+  };
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, profile, signOut, loading } = useAuth();
   const router = useRouter();
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-  const isActive = (page: string) => currentPage === page;
+  // Ensure consistent SSR/CSR behavior by using mounted state
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Use router.pathname for consistent SSR/CSR behavior
+  // Fallback to currentPage prop if router.pathname is not available during SSR
+  const isActive = (page: string) => {
+    if (!mounted) {
+      // During SSR, use currentPage prop to avoid hydration mismatch
+      return currentPage === page;
+    }
+    const pathname = router.pathname || '';
+    const pagePath = page === 'home' ? '/' : `/${page}`;
+    return pathname === pagePath || pathname.startsWith(`${pagePath}/`);
+  };
 
   const handleSignOut = async () => {
     try {
@@ -53,6 +82,28 @@ export function MainHeader({ currentPage }: MainHeaderProps) {
       const interval = setInterval(loadNotifications, 30000);
       return () => clearInterval(interval);
     }
+  }, [user]);
+
+  useEffect(() => {
+    let active = true;
+    const loadBalance = async () => {
+      if (!user) {
+        setWalletBalance(null);
+        return;
+      }
+      try {
+        const data = await walletService.getBalance(user.id);
+        if (active) setWalletBalance(data.balance);
+      } catch {
+        if (active) setWalletBalance(null);
+      }
+    };
+    loadBalance();
+    const interval = setInterval(loadBalance, 30000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, [user]);
 
   const loadNotifications = async () => {
@@ -123,61 +174,15 @@ export function MainHeader({ currentPage }: MainHeaderProps) {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
-            <div className="relative">
-              <svg
-                width="32"
-                height="32"
-                viewBox="0 0 32 32"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="text-blue-600"
-              >
-                {/* Slab base */}
-                <rect
-                  x="4"
-                  y="6"
-                  width="24"
-                  height="20"
-                  rx="2"
-                  fill="url(#slabGradient)"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                />
-                {/* Card inside slab */}
-                <rect
-                  x="6"
-                  y="8"
-                  width="20"
-                  height="16"
-                  rx="1"
-                  fill="white"
-                  className="dark:fill-slate-800"
-                />
-                {/* Card details */}
-                <rect
-                  x="8"
-                  y="10"
-                  width="16"
-                  height="12"
-                  rx="0.5"
-                  fill="url(#cardGradient)"
-                  opacity="0.3"
-                />
-                {/* Corner accent */}
-                <circle cx="24" cy="10" r="2" fill="currentColor" opacity="0.6" />
-                <defs>
-                  <linearGradient id="slabGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#3b82f6" />
-                    <stop offset="100%" stopColor="#8b5cf6" />
-                  </linearGradient>
-                  <linearGradient id="cardGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#3b82f6" />
-                    <stop offset="100%" stopColor="#8b5cf6" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <Image
+              src="/logosm6.png?v=2"
+              alt="SLab Market logo"
+              width={40}
+              height={40}
+              priority
+              className="h-9 w-9 md:h-10 md:w-10 object-contain"
+            />
+            <span className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
               Slab Market
             </span>
           </Link>
@@ -193,12 +198,36 @@ export function MainHeader({ currentPage }: MainHeaderProps) {
               {t('common.marketplace')}
             </Link>
             <Link
+              href="/dashboard"
+              className={`text-sm font-medium transition-colors ${
+                isActive("dashboard") ? "text-blue-600" : "hover:text-blue-600"
+              }`}
+            >
+              {t('common.dashboard')}
+            </Link>
+            <Link
+              href="/trends"
+              className={`text-sm font-medium transition-colors ${
+                isActive("trends") ? "text-blue-600" : "hover:text-blue-600"
+              }`}
+            >
+              {t('trends.title')}
+            </Link>
+            <Link
               href="/verification"
               className={`text-sm font-medium transition-colors ${
                 isActive("verification") ? "text-blue-600" : "hover:text-blue-600"
               }`}
             >
               {t('verification.title')}
+            </Link>
+            <Link
+              href="/help"
+              className={`text-sm font-medium transition-colors ${
+                isActive("help") ? "text-blue-600" : "hover:text-blue-600"
+              }`}
+            >
+              Help
             </Link>
             {user && (
               <Link
@@ -210,16 +239,24 @@ export function MainHeader({ currentPage }: MainHeaderProps) {
                 {t('messages.title')}
               </Link>
             )}
-            <Link
-              href="/dashboard"
-              className={`text-sm font-medium transition-colors ${
-                isActive("dashboard") ? "text-blue-600" : "hover:text-blue-600"
-              }`}
-            >
-              {t('common.dashboard')}
-            </Link>
             
             <div className="flex items-center space-x-2">
+              {/* Theme Switch */}
+              <ThemeSwitch />
+              
+              {/* Currency Selector */}
+              <CurrencySelector />
+              
+              {/* Wallet (icon + balance) */}
+              {user && (
+                <Link href="/wallet" className="flex items-center gap-1 px-2 py-1 rounded hover:text-blue-600">
+                  <Wallet className="h-5 w-5" />
+                  <span className="text-sm font-semibold">
+                    {walletBalance !== null ? walletBalance.toFixed(2) : "—"}
+                  </span>
+                </Link>
+              )}
+              
               {user && (
                 <>
                   <Button variant="ghost" size="icon" asChild title="Wishlists">
@@ -365,11 +402,11 @@ export function MainHeader({ currentPage }: MainHeaderProps) {
                 </>
               ) : (
                 <>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href="/auth/signin">{t('common.signIn')}</Link>
-                  </Button>
                   <Button size="sm" asChild>
                     <Link href="/sell">{t('common.sell')}</Link>
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/auth/signin">{t('common.signIn')}</Link>
                   </Button>
                 </>
               )}
@@ -393,11 +430,32 @@ export function MainHeader({ currentPage }: MainHeaderProps) {
                   {t('common.marketplace')}
                 </Link>
                 <Link
+                  href="/dashboard"
+                  className="text-lg font-medium hover:text-blue-600 transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t('common.dashboard')}
+                </Link>
+                <Link
+                  href="/trends"
+                  className="text-lg font-medium hover:text-blue-600 transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t('trends.title')}
+                </Link>
+                <Link
                   href="/verification"
                   className="text-lg font-medium hover:text-blue-600 transition-colors"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t('verification.title')}
+                </Link>
+                <Link
+                  href="/help"
+                  className="text-lg font-medium hover:text-blue-600 transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Help
                 </Link>
                 {user && (
                   <Link
@@ -408,13 +466,19 @@ export function MainHeader({ currentPage }: MainHeaderProps) {
                     {t('messages.title')}
                   </Link>
                 )}
-                <Link
-                  href="/dashboard"
-                  className="text-lg font-medium hover:text-blue-600 transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {t('common.dashboard')}
-                </Link>
+                
+                {/* Mobile Theme & Currency Selectors */}
+                <div className="flex items-center gap-4 pt-4 border-t">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Theme:</span>
+                    <ThemeSwitch />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Currency:</span>
+                    <CurrencySelector />
+                  </div>
+                </div>
+                
                 <div className="pt-4 border-t space-y-3">
                   {user && (
                     <div className="flex items-center justify-center pb-2">
@@ -470,14 +534,14 @@ export function MainHeader({ currentPage }: MainHeaderProps) {
                     </>
                   ) : (
                     <>
-                      <Button className="w-full" asChild>
-                        <Link href="/auth/signin" onClick={() => setMobileMenuOpen(false)}>
-                          {t('common.signIn')}
-                        </Link>
-                      </Button>
                       <Button variant="outline" className="w-full" asChild>
                         <Link href="/sell" onClick={() => setMobileMenuOpen(false)}>
                           {t('common.startSelling')}
+                        </Link>
+                      </Button>
+                      <Button className="w-full" asChild>
+                        <Link href="/auth/signin" onClick={() => setMobileMenuOpen(false)}>
+                          {t('common.signIn')}
                         </Link>
                       </Button>
                     </>
@@ -489,5 +553,48 @@ export function MainHeader({ currentPage }: MainHeaderProps) {
         </div>
       </div>
     </header>
+  );
+}
+
+function CurrencySelector() {
+  const { currency, setCurrency, supportedCurrencies } = useCurrency();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="gap-2">
+          <DollarSign className="h-4 w-4" />
+          <span className="hidden sm:inline">{currency}</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>Select Currency</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {supportedCurrencies.map((curr) => (
+          <DropdownMenuItem
+            key={curr.code}
+            onClick={async () => {
+              try {
+                await setCurrency(curr.code);
+                setOpen(false);
+              } catch (error) {
+                console.error("Error updating currency:", error);
+              }
+            }}
+            className={currency === curr.code ? "bg-slate-100 dark:bg-slate-800" : ""}
+          >
+            <span className="flex items-center gap-2 w-full">
+              <span className="font-medium">{curr.symbol}</span>
+              <span className="flex-1">{curr.name}</span>
+              <span className="text-sm text-slate-500">{curr.code}</span>
+              {currency === curr.code && (
+                <span className="text-blue-600">✓</span>
+              )}
+            </span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

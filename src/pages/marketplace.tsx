@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { useTranslations } from 'next-intl';
+import { useRouter } from "next/router";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,8 +23,10 @@ import { MainHeader } from "@/components/MainHeader";
 import { Footer } from "@/components/Footer";
 import { Filter, Search, Users, ShoppingCart, Grid3X3, List, Image as ImageIcon, Sparkles, TrendingUp, Star, Package, Eye, Camera } from "lucide-react";
 import Link from "next/link";
-import { cn, formatPrice } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { PriceDisplay } from "@/components/PriceDisplay";
 import { cardService, type MarketplaceCard } from "@/services/cardService";
+import { slabService } from "@/services/slabService";
 import { useCart } from "@/contexts/CartContext";
 import { setService } from "@/services/setService";
 import type { PokemonSet } from "@/data/pokemonSetCatalog";
@@ -31,6 +34,7 @@ import { SetCombobox } from "@/components/SetCombobox";
 import { AddToWishlistButton } from "@/components/AddToWishlistButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { wishlistService } from "@/services/wishlistService";
+import { SEO } from "@/components/SEO";
 
 type ViewMode = "grid" | "list";
 type SortOption = 
@@ -48,6 +52,7 @@ type SortOption =
 
 export default function MarketplacePage() {
   const t = useTranslations();
+  const router = useRouter();
   const { user } = useAuth();
   const [priceRange, setPriceRange] = useState([0, 10000]);
   const [cards, setCards] = useState<MarketplaceCard[]>([]);
@@ -59,13 +64,16 @@ export default function MarketplacePage() {
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
   const [selectedEditionVariants, setSelectedEditionVariants] = useState<string[]>([]);
-  const [minSubgrade, setMinSubgrade] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("popular");
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
   const [hoveredCardImage, setHoveredCardImage] = useState<string | null>(null);
   const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
   const [showWishlistOnly, setShowWishlistOnly] = useState(false);
   const [wishlistSlabIds, setWishlistSlabIds] = useState<string[]>([]);
+  const [featuredSlabs, setFeaturedSlabs] = useState<any[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("pokemon-tcg");
+  const [lorcanaSetNames, setLorcanaSetNames] = useState<string[]>([]);
+  const [selectedRarity, setSelectedRarity] = useState<string>("all");
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -81,6 +89,16 @@ export default function MarketplacePage() {
       .then((data) => {
         if (isMounted) {
           setSets(data);
+          
+          // Check for set parameter in URL
+          const setParam = router.query.set as string | undefined;
+          if (setParam && setParam !== "all") {
+            // Verify the set exists
+            const setExists = data.find((s) => s.slug === setParam);
+            if (setExists) {
+              setSelectedSetSlug(setParam);
+            }
+          }
         }
       })
       .catch(() => {
@@ -95,57 +113,29 @@ export default function MarketplacePage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [router.query.set]);
 
-  const loadCards = useCallback(async () => {
-    try {
-      setLoading(true);
-      const selectedSet = selectedSetSlug === "all" ? undefined : sets.find((set) => set.slug === selectedSetSlug);
-      
-      const result = await cardService.getAllMarketplaceCards({
-        set_name: selectedSet?.name,
-        min_price: priceRange[0],
-        max_price: priceRange[1],
-        search: searchQuery || undefined,
-        page: currentPage,
-        pageSize,
-        sortBy,
-      });
-      
-      setCards(result.cards);
-      setTotalCards(result.total);
-      setTotalPages(result.totalPages);
-      
-      // Debug logging
-      console.log("Loaded cards:", {
-        count: result.cards.length,
-        total: result.total,
-        page: result.page,
-        totalPages: result.totalPages,
-        filters: {
-          set_name: selectedSet?.name,
-          min_price: priceRange[0],
-          max_price: priceRange[1],
-          search: searchQuery,
-          sortBy,
-        }
-      });
-    } catch (error) {
-      console.error("Error loading cards:", error);
-      // Set empty state on error
-      setCards([]);
-      setTotalCards(0);
-      setTotalPages(1);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentPage, searchQuery, selectedSetSlug, priceRange, sortBy, sets, pageSize]);
-
-  // Load cards when filters, search, sort, or page changes
+  // Handle deep-link for Lorcana via ?set_name= (always switch category to Lorcana)
   useEffect(() => {
-    loadCards();
-  }, [loadCards]);
-
+    const setNameParam = router.query.set_name as string | undefined;
+    if (setNameParam && typeof setNameParam === "string") {
+      // Force category to Lorcana and apply set_name directly
+      setSelectedCategoryId("disney-lorcana");
+      try {
+        const decoded = decodeURIComponent(setNameParam);
+        setSelectedSetSlug(decoded);
+      } catch {
+        setSelectedSetSlug(setNameParam);
+      }
+    }
+  }, [router.query.set_name]);
+  // Handle deep-link for category (?category or ?category_id)
+  useEffect(() => {
+    const cat = (router.query.category as string) || (router.query.category_id as string);
+    if (cat && (cat === "pokemon-tcg" || cat === "disney-lorcana")) {
+      setSelectedCategoryId(cat);
+    }
+  }, [router.query.category, router.query.category_id]);
   // Load wishlist slab IDs when user is logged in and showWishlistOnly is true
   useEffect(() => {
     if (user && showWishlistOnly) {
@@ -164,16 +154,84 @@ export default function MarketplacePage() {
     }
   }, [user, showWishlistOnly]);
 
+  // Load featured slabs for the top strip
+  useEffect(() => {
+    slabService.getFeatured(6)
+      .then(setFeaturedSlabs)
+      .catch(() => setFeaturedSlabs([]));
+  }, []);
+
+  // Load Lorcana set names dynamically via cardService (RLS-safe)
+  useEffect(() => {
+    if (selectedCategoryId !== "disney-lorcana") return;
+    (async () => {
+      try {
+        const knownSets = [
+          "The First Chapter",
+          "Rise of the Floodborn",
+          "Into the Inklands",
+          "Ursula's Return",
+          "Shimmering Skies",
+          "Reign of Jafar",
+          "Whispers in the Well",
+          "Archazia's Island",
+          "Azurite Sea",
+          "Fabled",
+          // Promos (ensure always present)
+          "Promo Set 1",
+          "Promo Set 2",
+          "Challenge Promo",
+          "D23 Collection",
+        ];
+        const dbNames = await cardService.getSetNames("disney-lorcana");
+        const merged = Array.from(new Set([...(dbNames || []), ...knownSets]));
+        // Sort with knownSets order first, then alphabetical
+        const order = new Map(knownSets.map((n, i) => [n, i]));
+        merged.sort((a, b) => {
+          const ia = order.has(a) ? order.get(a)! : 999;
+          const ib = order.has(b) ? order.get(b)! : 999;
+          if (ia !== ib) return ia - ib;
+          return a.localeCompare(b);
+        });
+        setLorcanaSetNames(merged);
+      } catch (e: any) {
+        console.error("Error loading Lorcana sets:", e?.message || e);
+        setLorcanaSetNames([
+          "The First Chapter",
+          "Rise of the Floodborn",
+          "Into the Inklands",
+          "Ursula's Return",
+          "Shimmering Skies",
+          "Reign of Jafar",
+          "Whispers in the Well",
+          "Archazia's Island",
+          "Azurite Sea",
+          "Fabled",
+        ]);
+      }
+    })();
+  }, [selectedCategoryId]);
   const loadCards = useCallback(async () => {
     try {
       setLoading(true);
       const selectedSet = selectedSetSlug === "all" ? undefined : sets.find((set) => set.slug === selectedSetSlug);
+      // Determine set filter name based on category:
+      // - Pokemon uses canonical set.name from catalog/DB
+      // - Lorcana uses raw set_name stored on cards (string)
+      let setNameFilter: string | undefined = undefined;
+      if (selectedCategoryId === "pokemon-tcg") {
+        setNameFilter = selectedSet?.name;
+      } else if (selectedCategoryId === "disney-lorcana" && selectedSetSlug !== "all") {
+        setNameFilter = selectedSetSlug;
+      }
       
       let result;
       if (showWishlistOnly && user) {
         // Load cards from wishlists
         result = await cardService.getCardsInWishlists(user.id, {
-          set_name: selectedSet?.name,
+          category_id: selectedCategoryId || undefined,
+          set_name: setNameFilter,
+          rarity: selectedRarity !== "all" ? selectedRarity : undefined,
           min_price: priceRange[0],
           max_price: priceRange[1],
           search: searchQuery || undefined,
@@ -183,8 +241,13 @@ export default function MarketplacePage() {
         });
       } else {
         // Load all cards
+        // Use marketplace_cards view to get price information for sorting
         result = await cardService.getAllMarketplaceCards({
-          set_name: selectedSet?.name,
+          category_id: selectedCategoryId || undefined,
+          set_name: setNameFilter,
+          illustrator: (router.query.illustrator as string) || undefined,
+          force_cards: false, // Always use marketplace_cards view to get price data for sorting
+          rarity: selectedRarity !== "all" ? selectedRarity : undefined,
           min_price: priceRange[0],
           max_price: priceRange[1],
           search: searchQuery || undefined,
@@ -197,22 +260,6 @@ export default function MarketplacePage() {
       setCards(result.cards);
       setTotalCards(result.total);
       setTotalPages(result.totalPages);
-      
-      // Debug logging
-      console.log("Loaded cards:", {
-        count: result.cards.length,
-        total: result.total,
-        page: result.page,
-        totalPages: result.totalPages,
-        filters: {
-          set_name: selectedSet?.name,
-          min_price: priceRange[0],
-          max_price: priceRange[1],
-          search: searchQuery,
-          sortBy,
-          showWishlistOnly,
-        }
-      });
     } catch (error) {
       console.error("Error loading cards:", error);
       // Set empty state on error
@@ -222,7 +269,12 @@ export default function MarketplacePage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, searchQuery, selectedSetSlug, priceRange, sortBy, sets, pageSize, showWishlistOnly, user]);
+  }, [currentPage, searchQuery, selectedSetSlug, priceRange, sortBy, sets, pageSize, showWishlistOnly, user, selectedCategoryId, selectedRarity]);
+
+  // Load cards when filters, search, sort, or page changes
+  useEffect(() => {
+    loadCards();
+  }, [loadCards]);
 
   // Reset to page 1 when filters change (but not on initial load)
   useEffect(() => {
@@ -230,13 +282,77 @@ export default function MarketplacePage() {
       setCurrentPage(1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, selectedSetSlug, priceRange, sortBy, showWishlistOnly]);
+  }, [searchQuery, selectedSetSlug, priceRange, sortBy, showWishlistOnly, selectedCategoryId, selectedRarity]);
+
+  const marketplaceDescription = `Browse ${totalCards} graded trading cards from ${sets.length} sets. Find PSA, BGS, and CGC certified Pokemon cards. Filter by price, grade, set, and more.`;
+  const searchKeywords = searchQuery ? [searchQuery, "graded cards", "trading cards", "Pokemon cards"] : ["graded cards", "trading cards", "Pokemon cards", "PSA", "BGS", "CGC", "slab market"];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
-      <MainHeader currentPage="marketplace" />
+    <>
+      <SEO
+        title={`Marketplace${searchQuery ? ` - ${searchQuery}` : ""} - Browse Graded Trading Cards`}
+        description={marketplaceDescription}
+        keywords={searchKeywords}
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Trading Cards Marketplace",
+          description: marketplaceDescription,
+          url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://slabmarket.com"}/marketplace`,
+        }}
+      />
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
+        <MainHeader currentPage="marketplace" />
 
       <div className="container mx-auto px-4 py-8 flex-1">
+        {/* Featured strip */}
+        <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-yellow-600" />
+                <h2 className="text-xl font-semibold tracking-tight">Featured Listings</h2>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/marketplace">{t('common.view')} All</Link>
+              </Button>
+            </div>
+            {featuredSlabs.length > 0 ? (
+              <div className="overflow-x-auto">
+                <div className="flex gap-4 min-w-full">
+                  {featuredSlabs.map((slab) => (
+                    <Card key={slab.id} className="min-w-[300px] flex-shrink-0">
+                      <CardHeader className="p-0">
+                        <Link href={`/slab/${slab.id}`} className="block relative aspect-[3/4] bg-slate-200 dark:bg-slate-800 rounded-t-lg overflow-hidden">
+                          {slab.images && slab.images.length > 0 ? (
+                            <Image src={slab.images[0]} alt={slab.name || "Slab"} fill className="object-cover" />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center text-5xl">🧩</div>
+                          )}
+                        </Link>
+                      </CardHeader>
+                      <CardContent className="p-3">
+                        <Link href={`/slab/${slab.id}`} className="font-medium line-clamp-1">
+                          {slab.name || "Featured slab"}
+                        </Link>
+                        {slab.price && (
+                          <p className="text-blue-600 font-semibold">
+                            <PriceDisplay price={slab.price} fromCurrency="USD" />
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-6 text-center text-sm text-slate-600 dark:text-slate-400">
+                  No featured listings yet. Be the first to create one!
+                </CardContent>
+              </Card>
+            )}
+        </div>
+
         {/* Search Bar */}
         <div className="mb-8">
           <div className="flex gap-4">
@@ -268,16 +384,19 @@ export default function MarketplacePage() {
                   setPriceRange={setPriceRange}
                   sets={sets}
                   setsLoading={setsLoading}
+                  selectedCategoryId={selectedCategoryId}
+                  setSelectedCategoryId={setSelectedCategoryId}
                   selectedSetSlug={selectedSetSlug}
                   setSelectedSetSlug={setSelectedSetSlug}
                   selectedGrades={selectedGrades}
                   setSelectedGrades={setSelectedGrades}
                   selectedEditionVariants={selectedEditionVariants}
                   setSelectedEditionVariants={setSelectedEditionVariants}
-                  minSubgrade={minSubgrade}
-                  setMinSubgrade={setMinSubgrade}
                   showWishlistOnly={showWishlistOnly}
                   setShowWishlistOnly={setShowWishlistOnly}
+                  lorcanaSetNames={lorcanaSetNames}
+                  selectedRarity={selectedRarity}
+                  setSelectedRarity={setSelectedRarity}
                 />
               </SheetContent>
             </Sheet>
@@ -307,16 +426,19 @@ export default function MarketplacePage() {
                   setPriceRange={setPriceRange}
                   sets={sets}
                   setsLoading={setsLoading}
+                  selectedCategoryId={selectedCategoryId}
+                  setSelectedCategoryId={setSelectedCategoryId}
                   selectedSetSlug={selectedSetSlug}
                   setSelectedSetSlug={setSelectedSetSlug}
                   selectedGrades={selectedGrades}
                   setSelectedGrades={setSelectedGrades}
                   selectedEditionVariants={selectedEditionVariants}
                   setSelectedEditionVariants={setSelectedEditionVariants}
-                  minSubgrade={minSubgrade}
-                  setMinSubgrade={setMinSubgrade}
                   showWishlistOnly={showWishlistOnly}
                   setShowWishlistOnly={setShowWishlistOnly}
+                  lorcanaSetNames={lorcanaSetNames}
+                  selectedRarity={selectedRarity}
+                  setSelectedRarity={setSelectedRarity}
                 />
               </CardContent>
             </Card>
@@ -398,7 +520,7 @@ export default function MarketplacePage() {
                       <Card 
                         key={card.id} 
                         className="group overflow-hidden border hover:border-blue-500/50 dark:hover:border-blue-400/50 transition-all duration-300 hover:shadow-md hover:shadow-blue-500/10 dark:hover:shadow-blue-400/10 cursor-pointer animate-fade-in-up"
-                        onClick={() => window.location.href = `/card/${card.id}`}
+                        onClick={() => window.location.href = `/card/${card.slug || card.id}`}
                         style={{ animationDelay: `${index * 30}ms` }}
                         onMouseEnter={(e) => {
                           if (card.image_url) {
@@ -446,7 +568,7 @@ export default function MarketplacePage() {
                           }
                         }}
                       >
-                        <div className="flex items-center gap-2 p-2">
+                        <div className="flex items-center gap-2 p-2 h-16">
                           {/* Card Image - Always shows camera icon */}
                           <div className="relative flex-shrink-0">
                             <div className="relative h-10 w-8 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 dark:from-slate-800 dark:via-slate-700 dark:to-slate-900 rounded overflow-hidden shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center">
@@ -464,7 +586,7 @@ export default function MarketplacePage() {
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1 min-w-0">
                                 <Link 
-                                  href={`/card/${card.id}`}
+                                  href={`/card/${card.slug || card.id}`}
                                   className="block"
                                   onClick={(e) => e.stopPropagation()}
                                 >
@@ -498,34 +620,24 @@ export default function MarketplacePage() {
 
                               {/* Price & Availability */}
                               <div className="flex items-center gap-3 flex-shrink-0">
-                                <div className="text-right">
-                                  {card.lowest_price ? (
-                                    <>
-                                      <div className="flex items-center gap-0.5 justify-end mb-0.5">
-                                        <TrendingUp className="h-2.5 w-2.5 text-green-600 dark:text-green-400" />
-                                        <span className="text-[9px] text-slate-500 dark:text-slate-400">{t('marketplace.from')}</span>
-                                      </div>
-                                      <p className="text-lg font-bold text-green-600 dark:text-green-400 leading-tight">
-                                        ${formatPrice(card.lowest_price)}
-                                      </p>
-                                      {card.total_listings > 0 && (
-                                        <div className="flex items-center gap-0.5 justify-end mt-0.5 text-[9px] text-slate-600 dark:text-slate-400">
-                                          <ShoppingCart className="h-2.5 w-2.5" />
-                                          <span>{card.total_listings}</span>
-                                        </div>
-                                      )}
-                                    </>
-                                  ) : (
-                                    <div className="text-right">
-                                      <div className="flex items-center gap-0.5 justify-end mb-0.5">
-                                        <Eye className="h-2.5 w-2.5 text-slate-400" />
-                                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                                          {t('marketplace.noListings')}
-                                        </span>
-                                      </div>
+                                {card.lowest_price ? (
+                                  <div className="flex items-center gap-1.5 text-right">
+                                    <div className="flex items-center gap-0.5">
+                                      <TrendingUp className="h-2.5 w-2.5 text-green-600 dark:text-green-400" />
+                                      <span className="text-[9px] text-slate-500 dark:text-slate-400">{t('marketplace.from')}</span>
                                     </div>
-                                  )}
-                                </div>
+                                    <p className="text-sm font-bold text-green-600 dark:text-green-400 leading-tight">
+                                      <PriceDisplay price={card.lowest_price} fromCurrency="USD" />
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-0.5">
+                                    <Eye className="h-2.5 w-2.5 text-slate-400" />
+                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                                      {t('marketplace.noListings')}
+                                    </span>
+                                  </div>
+                                )}
 
                                 {/* Action Button */}
                                 <div onClick={(e) => e.stopPropagation()}>
@@ -668,7 +780,8 @@ export default function MarketplacePage() {
       </div>
 
       <Footer />
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -677,32 +790,56 @@ function FilterPanel({
   setPriceRange,
   sets,
   setsLoading,
+  selectedCategoryId,
+  setSelectedCategoryId,
   selectedSetSlug,
   setSelectedSetSlug,
   selectedGrades,
   setSelectedGrades,
   selectedEditionVariants,
   setSelectedEditionVariants,
-  minSubgrade,
-  setMinSubgrade,
+  showWishlistOnly,
+  setShowWishlistOnly,
+  lorcanaSetNames,
+  selectedRarity,
+  setSelectedRarity,
 }: {
   priceRange: number[];
   setPriceRange: (value: number[]) => void;
   sets: PokemonSet[];
   setsLoading: boolean;
+  selectedCategoryId: string;
+  setSelectedCategoryId: (value: string) => void;
   selectedSetSlug: string;
   setSelectedSetSlug: (value: string) => void;
   selectedGrades: string[];
   setSelectedGrades: React.Dispatch<React.SetStateAction<string[]>>;
   selectedEditionVariants: string[];
   setSelectedEditionVariants: React.Dispatch<React.SetStateAction<string[]>>;
-  minSubgrade: number | null;
-  setMinSubgrade: (value: number | null) => void;
+  showWishlistOnly?: boolean;
+  setShowWishlistOnly?: (value: boolean) => void;
+  lorcanaSetNames?: string[];
+  selectedRarity: string;
+  setSelectedRarity: (value: string) => void;
 }) {
   const t = useTranslations();
   const { user } = useAuth();
+  const KNOWN_LORCANA_SETS = [
+    "The First Chapter",
+    "Rise of the Floodborn",
+    "Into the Inklands",
+    "Ursula's Return",
+    "Shimmering Skies",
+    "Reign of Jafar",
+    "Whispers in the Well",
+    "Archazia's Island",
+    "Azurite Sea",
+    "Fabled",
+  ];
   const grades = ["10", "9", "8", "7", "6", "5", "4", "3", "2", "1"];
-  const editionVariants = [
+  const editionVariants =
+    selectedCategoryId === "pokemon-tcg"
+      ? [
     { key: "first_edition", label: "First Edition" },
     { key: "shadowless", label: "Shadowless" },
     { key: "pokemon_center_edition", label: "Pokemon Center Edition" },
@@ -710,6 +847,16 @@ function FilterPanel({
     { key: "staff", label: "Staff" },
     { key: "tournament_card", label: "Tournament Card" },
     { key: "error_card", label: "Error Card" },
+        ]
+      : [
+          // Lorcana: dopasuj do możliwości ze strony karty (bez First Edition/Shadowless/PC Edition)
+          { key: "holo", label: "Holo" },
+          { key: "reverse_holo", label: "Reverse Holo" },
+          { key: "foil", label: "Foil" },
+          { key: "prerelease", label: "Prerelease" },
+          { key: "staff", label: "Staff" },
+          { key: "tournament_card", label: "Tournament Card" },
+          { key: "error_card", label: "Error Card" },
   ];
 
   const toggleGrade = (grade: string) => {
@@ -749,19 +896,22 @@ function FilterPanel({
 
       <div>
         <label className="text-sm font-medium mb-2 block">{t('marketplace.category')}</label>
-        <Select defaultValue="pokemon">
+        <Select value={selectedCategoryId} onValueChange={(v) => {
+          setSelectedCategoryId(v);
+          // reset set filter when switching away from pokemon
+          if (v !== "pokemon-tcg") setSelectedSetSlug("all");
+        }}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="pokemon">Pokemon TCG</SelectItem>
-            <SelectItem value="lorcana" disabled>Disney Lorcana (Soon)</SelectItem>
-            <SelectItem value="sports" disabled>Sports Cards (Soon)</SelectItem>
-            <SelectItem value="mtg" disabled>Magic: The Gathering (Soon)</SelectItem>
+            <SelectItem value="pokemon-tcg">Pokemon TCG</SelectItem>
+            <SelectItem value="disney-lorcana">Disney Lorcana</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
+      {selectedCategoryId === "pokemon-tcg" && (
       <div>
         <label className="text-sm font-medium mb-2 block">{t('marketplace.setEdition')}</label>
         <SetCombobox
@@ -771,6 +921,44 @@ function FilterPanel({
           isLoading={setsLoading}
         />
       </div>
+      )}
+      {selectedCategoryId === "disney-lorcana" && (
+        <div>
+          <label className="text-sm font-medium mb-2 block">Set</label>
+          <Select value={selectedSetSlug} onValueChange={setSelectedSetSlug}>
+            <SelectTrigger>
+              <SelectValue placeholder="All sets" />
+            </SelectTrigger>
+            <SelectContent className="max-h-60 overflow-auto" position="popper">
+              <SelectItem value="all">All sets</SelectItem>
+              {((lorcanaSetNames && lorcanaSetNames.length > 0) ? lorcanaSetNames : KNOWN_LORCANA_SETS).map((name) => (
+                <SelectItem key={name} value={name}>{name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="mt-1 text-xs text-slate-500">
+            Sets: {(lorcanaSetNames && lorcanaSetNames.length > 0) ? lorcanaSetNames.length : KNOWN_LORCANA_SETS.length}
+          </p>
+          <div className="mt-4">
+            <label className="text-sm font-medium mb-2 block">Rarity</label>
+            <Select value={selectedRarity} onValueChange={setSelectedRarity}>
+              <SelectTrigger>
+                <SelectValue placeholder="All rarities" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All rarities</SelectItem>
+                <SelectItem value="Common">Common</SelectItem>
+                <SelectItem value="Uncommon">Uncommon</SelectItem>
+                <SelectItem value="Rare">Rare</SelectItem>
+                <SelectItem value="Super Rare">Super Rare</SelectItem>
+                <SelectItem value="Legendary">Legendary</SelectItem>
+                <SelectItem value="Enchanted">Enchanted</SelectItem>
+                <SelectItem value="Iconic">Iconic</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
 
       <div>
         <label className="text-sm font-medium mb-4 block">
@@ -846,30 +1034,6 @@ function FilterPanel({
           ))}
         </div>
       </div>
-
-      <div>
-        <label className="text-sm font-medium mb-2 block">Minimum Subgrade</label>
-        <Select 
-          value={minSubgrade?.toString() || "any"} 
-          onValueChange={(value) => setMinSubgrade(value === "any" ? null : parseFloat(value))}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="any">Any</SelectItem>
-            <SelectItem value="9.5">9.5+</SelectItem>
-            <SelectItem value="9">9.0+</SelectItem>
-            <SelectItem value="8.5">8.5+</SelectItem>
-            <SelectItem value="8">8.0+</SelectItem>
-            <SelectItem value="7.5">7.5+</SelectItem>
-            <SelectItem value="7">7.0+</SelectItem>
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-slate-500 mt-1">
-          Filter by minimum subgrade (centering, corners, edges, surface)
-        </p>
-      </div>
     </div>
   );
 }
@@ -880,7 +1044,7 @@ const CardListingCard = memo(function CardListingCard({ card }: { card: Marketpl
     <Card className="hover:shadow-xl transition-all duration-300 group h-full">
       <CardHeader className="p-0">
         <Link
-          href={`/card/${card.id}`}
+          href={`/card/${card.slug || card.id}`}
           className="block relative aspect-[3/4] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-t-lg overflow-hidden"
         >
           {card.image_url ? (
@@ -913,7 +1077,7 @@ const CardListingCard = memo(function CardListingCard({ card }: { card: Marketpl
       <CardContent className="p-4 space-y-3">
         <div>
           <Link
-            href={`/card/${card.id}`}
+            href={`/card/${card.slug || card.id}`}
             className="font-semibold mb-1 group-hover:text-blue-600 transition-colors line-clamp-1"
           >
             {card.name}
@@ -930,7 +1094,11 @@ const CardListingCard = memo(function CardListingCard({ card }: { card: Marketpl
           <div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">{t('marketplace.from')}</p>
             <p className="text-2xl font-bold text-blue-600">
-              {card.lowest_price ? `$${formatPrice(card.lowest_price)}` : t('marketplace.noListings')}
+              {card.lowest_price ? (
+                <PriceDisplay price={card.lowest_price} fromCurrency="USD" />
+              ) : (
+                t('marketplace.noListings')
+              )}
             </p>
           </div>
           <div className="text-right">
@@ -955,7 +1123,7 @@ const CardListingCard = memo(function CardListingCard({ card }: { card: Marketpl
       </CardContent>
       <CardFooter className="p-4 pt-0 flex gap-2">
         <Button className="flex-1" variant="outline" asChild>
-          <Link href={`/card/${card.id}`}>
+          <Link href={`/card/${card.slug || card.id}`}>
             {card.total_listings > 0 
               ? t('marketplace.viewOffers', { count: card.total_listings, plural: card.total_listings !== 1 ? 's' : '' })
               : t('marketplace.viewCardDetails')

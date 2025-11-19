@@ -159,6 +159,26 @@ export const authService = {
   // Reset password
   async resetPassword(email: string): Promise<{ error: AuthError | null }> {
     try {
+      // First, check if user exists
+      const checkResponse = await fetch('/api/check-user-exists', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const checkData = await checkResponse.json();
+
+      if (!checkData.exists) {
+        return { 
+          error: { 
+            message: "No account found with this email address. Please check your email or sign up for a new account." 
+          } 
+        };
+      }
+
+      // User exists, proceed with password reset
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${getURL()}auth/reset-password`,
       });

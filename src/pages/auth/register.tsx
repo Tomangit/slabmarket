@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Award, Mail, Lock, User, ArrowLeft, AlertCircle } from "lucide-react";
@@ -22,8 +21,7 @@ export default function RegisterPage() {
     username: "",
     email: "",
     password: "",
-    confirmPassword: "",
-    accountType: "buyer"
+    confirmPassword: ""
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -125,24 +123,6 @@ export default function RegisterPage() {
                     required
                   />
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="accountType">Account Type</Label>
-                <Select
-                  value={formData.accountType}
-                  onValueChange={(value) => setFormData({ ...formData, accountType: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="buyer">Buyer / Collector</SelectItem>
-                    <SelectItem value="seller">Seller</SelectItem>
-                    <SelectItem value="dealer">Professional Dealer</SelectItem>
-                    <SelectItem value="investor">Investor</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               <div className="space-y-2">

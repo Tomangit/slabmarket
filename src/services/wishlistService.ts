@@ -160,7 +160,7 @@ export const wishlistService = {
     if (error) throw error;
   },
 
-  // Add item to wishlist
+  // Add item to wishlist (supports both card_id and slab_id)
   async addItemToWishlist(item: WishlistItemInsert): Promise<WishlistItem> {
     const { data, error } = await supabase
       .from("wishlist_items")
@@ -171,12 +171,18 @@ export const wishlistService = {
     if (error) {
       // If item already exists, return the existing item
       if (error.code === "23505") {
-        const { data: existing } = await supabase
+        const query = supabase
           .from("wishlist_items")
           .select()
-          .eq("wishlist_id", item.wishlist_id)
-          .eq("slab_id", item.slab_id)
-          .single();
+          .eq("wishlist_id", item.wishlist_id);
+        
+        if (item.card_id) {
+          query.eq("card_id", item.card_id);
+        } else if (item.slab_id) {
+          query.eq("slab_id", item.slab_id);
+        }
+        
+        const { data: existing } = await query.single();
         if (existing) return existing;
       }
       throw error;
@@ -184,14 +190,29 @@ export const wishlistService = {
     return data;
   },
 
-  // Remove item from wishlist
-  async removeItemFromWishlist(wishlistId: string, slabId: string): Promise<void> {
-    const { error } = await supabase
+  // Remove item from wishlist (supports both card_id and slab_id)
+  // Overload: can accept either string (slabId for backward compatibility) or object
+  async removeItemFromWishlist(
+    wishlistId: string, 
+    itemId: string | { cardId?: string; slabId?: string }
+  ): Promise<void> {
+    const query = supabase
       .from("wishlist_items")
       .delete()
-      .eq("wishlist_id", wishlistId)
-      .eq("slab_id", slabId);
+      .eq("wishlist_id", wishlistId);
+    
+    // Backward compatibility: if itemId is a string, treat it as slabId
+    if (typeof itemId === "string") {
+      query.eq("slab_id", itemId);
+    } else if (itemId.cardId) {
+      query.eq("card_id", itemId.cardId);
+    } else if (itemId.slabId) {
+      query.eq("slab_id", itemId.slabId);
+    } else {
+      throw new Error("Either cardId or slabId must be provided");
+    }
 
+    const { error } = await query;
     if (error) throw error;
   },
 
@@ -223,6 +244,41 @@ export const wishlistService = {
     return data.map((item: any) => ({
       wishlist_id: item.wishlist.id,
       wishlist_name: item.wishlist.name,
+    }));
+  },
+
+  // Check if card is in any wishlist for a user
+  async checkIfCardInWishlist(userId: string, cardId: string): Promise<{ wishlist_id: string; wishlist_name: string; min_grade?: string; notify_on_new_listing?: boolean }[] | null> {
+    const { data, error } = await supabase
+      .from("wishlist_items")
+      .select(`
+        wishlist_id,
+        min_grade,
+        notify_on_new_listing,
+        wishlist:wishlists!inner(
+          id,
+          name,
+          user_id
+        )
+      `)
+      .eq("wishlist.user_id", userId)
+      .eq("card_id", cardId);
+
+    if (error) {
+      // If error is because of missing relation, return null
+      if (error.code === "PGRST116" || error.message?.includes("does not exist")) {
+        return null;
+      }
+      throw error;
+    }
+    
+    if (!data || data.length === 0) return null;
+    
+    return data.map((item: any) => ({
+      wishlist_id: item.wishlist.id,
+      wishlist_name: item.wishlist.name,
+      min_grade: item.min_grade,
+      notify_on_new_listing: item.notify_on_new_listing,
     }));
   },
 

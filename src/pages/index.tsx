@@ -10,8 +10,9 @@ import Link from "next/link";
 import { MainHeader } from "@/components/MainHeader";
 import { Footer } from "@/components/Footer";
 import { slabService } from "@/services/slabService";
-import { formatPrice } from "@/lib/utils";
+import { PriceDisplay } from "@/components/PriceDisplay";
 import { useAuth } from "@/contexts/AuthContext";
+import { SEO } from "@/components/SEO";
 
 export default function HomePage() {
   const t = useTranslations();
@@ -21,6 +22,11 @@ export default function HomePage() {
   const [addedToday, setAddedToday] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // Render dynamic (client-fetched) sections only on client to avoid SSR/CSR mismatches
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     const loadSlabs = async () => {
@@ -69,19 +75,40 @@ export default function HomePage() {
   }, [user?.id]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
-      <MainHeader currentPage="home" />
+    <>
+      <SEO
+        title="Premium Marketplace for Graded Trading Cards"
+        description="Buy and sell authenticated graded trading cards with confidence. Real-time certificate verification, escrow protection, and investment-grade analytics. PSA, BGS, CGC certified slabs."
+        keywords={["graded cards", "trading cards", "Pokemon cards", "PSA", "BGS", "CGC", "slab market", "card marketplace", "authenticated cards", "graded collectibles"]}
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Slab Market",
+          url: process.env.NEXT_PUBLIC_SITE_URL || "https://slabmarket.com",
+          description: "Premium marketplace for authenticated graded trading cards",
+          potentialAction: {
+            "@type": "SearchAction",
+            target: {
+              "@type": "EntryPoint",
+              urlTemplate: `${process.env.NEXT_PUBLIC_SITE_URL || "https://slabmarket.com"}/marketplace?search={search_term_string}`,
+            },
+            "query-input": "required name=search_term_string",
+          },
+        }}
+      />
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+        <MainHeader currentPage="home" />
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20">
         <div className="max-w-4xl mx-auto text-center">
           <Badge className="mb-4" variant="secondary">
-            Launching with Pokemon TCG • More Categories Coming Soon
+            A curated marketplace for graded collectibles
           </Badge>
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <h1 className="text-5xl md:text-6xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 mb-6">
             {t('home.title')}
           </h1>
-          <p className="text-xl text-slate-600 dark:text-slate-400 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl leading-relaxed text-slate-700 dark:text-slate-300 mb-10 max-w-2xl mx-auto">
             {t('home.subtitle')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -92,27 +119,29 @@ export default function HomePage() {
               <Link href="/sell">{t('home.startSelling')}</Link>
             </Button>
           </div>
-          <div className="mt-8 flex flex-wrap justify-center gap-6 text-sm text-slate-600 dark:text-slate-400">
-            <div className="flex items-center gap-2">
+        </div>
+      </section>
+
+      
+
+      {/* Trust/Assurances band (no vanity metrics) */}
+      <section className="container mx-auto px-4 pb-12">
+        <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          <div className="rounded-lg border bg-white dark:bg-slate-900 p-4 flex items-center justify-center gap-3">
               <ShieldCheck className="h-5 w-5 text-green-600" />
-              <span>{t('home.certificateVerified')}</span>
+            <div className="text-sm text-slate-700 dark:text-slate-300">Buyer protection on every order</div>
             </div>
-            <div className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-blue-600" />
-              <span>{t('home.escrowProtected')}</span>
+          <div className="rounded-lg border bg-white dark:bg-slate-900 p-4 flex items-center justify-center gap-3">
+            <Lock className="h-5 w-5 text-blue-600" />
+            <div className="text-sm text-slate-700 dark:text-slate-300">Escrow-secured transactions</div>
             </div>
-            <div className="flex items-center gap-2">
-              <Ban className="h-5 w-5 text-red-600" />
-              <span>Scammers Banned</span>
+          <div className="rounded-lg border bg-white dark:bg-slate-900 p-4 flex items-center justify-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-purple-600" />
+            <div className="text-sm text-slate-700 dark:text-slate-300">Verified grading companies</div>
             </div>
-            <div className="flex items-center gap-2">
-              <Star className="h-5 w-5 text-yellow-600" />
-              <span>Seller Ratings</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-purple-600" />
-              <span>{t('home.marketAnalytics')}</span>
-            </div>
+          <div className="rounded-lg border bg-white dark:bg-slate-900 p-4 flex items-center justify-center gap-3">
+            <UserCheck className="h-5 w-5 text-slate-600" />
+            <div className="text-sm text-slate-700 dark:text-slate-300">Seller ratings & dispute support</div>
           </div>
         </div>
       </section>
@@ -120,12 +149,12 @@ export default function HomePage() {
       {/* Supported Grading Companies */}
       <section className="container mx-auto px-4 py-12 border-y bg-slate-50/50 dark:bg-slate-900/50">
         <div className="max-w-4xl mx-auto">
-          <p className="text-center text-sm font-medium text-slate-600 dark:text-slate-400 mb-6">
-            AUTHENTICATED SLABS FROM TRUSTED GRADING COMPANIES
+          <p className="text-center text-sm font-medium text-slate-600 dark:text-slate-400 mb-6 tracking-wide">
+            Authenticated slabs from trusted grading companies
           </p>
           <div className="flex flex-wrap justify-center items-center gap-8">
             {["PSA", "BGS", "CGC", "SGC", "ACE"].map((company) => (
-              <div key={company} className="text-2xl font-bold text-slate-400 dark:text-slate-600">
+              <div key={company} className="text-xl md:text-2xl font-semibold text-slate-400 dark:text-slate-600">
                 {company}
               </div>
             ))}
@@ -134,19 +163,19 @@ export default function HomePage() {
       </section>
 
       {/* Buyer Protection Section */}
-      <section className="container mx-auto px-4 py-20 bg-gradient-to-b from-blue-50 to-white dark:from-blue-950/20 dark:to-slate-900">
+      <section className="container mx-auto px-4 py-20">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="flex items-center justify-center gap-3 mb-4">
               <ShieldCheck className="h-10 w-10 text-blue-600" />
-              <h2 className="text-3xl md:text-4xl font-bold">
+              <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
                 Your Safety is Our Priority
               </h2>
             </div>
-            <p className="text-lg text-slate-600 dark:text-slate-400 max-w-3xl mx-auto mb-8">
+            <p className="text-lg text-slate-700 dark:text-slate-300 max-w-3xl mx-auto mb-8">
               We've built multiple layers of protection to ensure you're buying authentic graded cards from trusted sellers. Scammers are immediately banned and never receive payment.
             </p>
-            <Button size="lg" variant="outline" asChild>
+            <Button size="lg" variant="secondary" asChild>
               <Link href="/verification">
                 <ShieldCheck className="mr-2 h-5 w-5" />
                 Learn About Buyer Protection
@@ -260,18 +289,20 @@ export default function HomePage() {
       <section className="container mx-auto px-4 py-20">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Built for Collectors & Investors
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
+              Built for collectors and serious investors
             </h2>
-            <p className="text-lg text-slate-600 dark:text-slate-400">
-              Everything you need to buy, sell, and track graded collectibles
+            <p className="text-lg text-slate-700 dark:text-slate-300">
+              Tools that make buying, selling, and tracking graded collectibles effortless
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card>
+            <Card className="bg-white dark:bg-slate-900">
               <CardHeader>
-                <ShieldCheck className="h-10 w-10 text-blue-600 mb-2" />
+                <div className="h-10 w-10 mb-3 rounded-md bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
+                  <ShieldCheck className="h-5 w-5 text-blue-700 dark:text-blue-300" />
+                </div>
                 <CardTitle>Real-Time Verification</CardTitle>
                 <CardDescription>
                   Instant certificate validation with PSA, BGS, CGC, SGC, and more. 
@@ -280,9 +311,11 @@ export default function HomePage() {
               </CardHeader>
             </Card>
 
-            <Card>
+            <Card className="bg-white dark:bg-slate-900">
               <CardHeader>
-                <Search className="h-10 w-10 text-purple-600 mb-2" />
+                <div className="h-10 w-10 mb-3 rounded-md bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center">
+                  <Search className="h-5 w-5 text-purple-700 dark:text-purple-300" />
+                </div>
                 <CardTitle>Advanced Filtering</CardTitle>
                 <CardDescription>
                   Search by grade, subgrades, certificate number, pop report, year, 
@@ -291,9 +324,11 @@ export default function HomePage() {
               </CardHeader>
             </Card>
 
-            <Card>
+            <Card className="bg-white dark:bg-slate-900">
               <CardHeader>
-                <Package className="h-10 w-10 text-green-600 mb-2" />
+                <div className="h-10 w-10 mb-3 rounded-md bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
+                  <Package className="h-5 w-5 text-green-700 dark:text-green-300" />
+                </div>
                 <CardTitle>Secure Transactions</CardTitle>
                 <CardDescription>
                   Escrow protection, insured shipping, and temperature-controlled 
@@ -302,9 +337,11 @@ export default function HomePage() {
               </CardHeader>
             </Card>
 
-            <Card>
+            <Card className="bg-white dark:bg-slate-900">
               <CardHeader>
-                <TrendingUp className="h-10 w-10 text-orange-600 mb-2" />
+                <div className="h-10 w-10 mb-3 rounded-md bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5 text-orange-700 dark:text-orange-300" />
+                </div>
                 <CardTitle>Investment Analytics</CardTitle>
                 <CardDescription>
                   Track price trends, market indices, ROI reports, and get 
@@ -313,9 +350,11 @@ export default function HomePage() {
               </CardHeader>
             </Card>
 
-            <Card>
+            <Card className="bg-white dark:bg-slate-900">
               <CardHeader>
-                <Star className="h-10 w-10 text-yellow-600 mb-2" />
+                <div className="h-10 w-10 mb-3 rounded-md bg-yellow-100 dark:bg-yellow-900/40 flex items-center justify-center">
+                  <Star className="h-5 w-5 text-yellow-700 dark:text-yellow-300" />
+                </div>
                 <CardTitle>Featured Listings</CardTitle>
                 <CardDescription>
                   Hot deals, newly added slabs, and premium featured listings. 
@@ -324,9 +363,11 @@ export default function HomePage() {
               </CardHeader>
             </Card>
 
-            <Card className="border-2 border-blue-200 dark:border-blue-800">
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
               <CardHeader>
-                <Award className="h-10 w-10 text-pink-600 mb-2" />
+                <div className="h-10 w-10 mb-3 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                  <Award className="h-5 w-5 text-slate-700 dark:text-slate-300" />
+                </div>
                 <CardTitle>Buyer Protection</CardTitle>
                 <CardDescription>
                   Comprehensive buyer protection program with delivery guarantees, 
@@ -345,113 +386,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Listings */}
-      <section className="container mx-auto px-4 py-12 bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <Sparkles className="h-8 w-8 text-yellow-600" />
-              <div>
-                <h2 className="text-3xl font-bold">{t('home.featuredListings')}</h2>
-                <p className="text-slate-600 dark:text-slate-400">{t('home.featuredListingsDesc')}</p>
-              </div>
-            </div>
-            <Button variant="outline" asChild>
-              <Link href="/marketplace">{t('common.view')} All</Link>
-            </Button>
-          </div>
-          {loading ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[...Array(4)].map((_, i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardHeader className="p-0">
-                    <div className="aspect-[3/4] bg-slate-200 dark:bg-slate-700 rounded-t-lg" />
-                  </CardHeader>
-                  <CardContent className="p-4 space-y-2">
-                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4" />
-                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2" />
-                    <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : featuredSlabs.length > 0 ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredSlabs.map((slab) => (
-                <SlabCard key={slab.id} slab={slab} />
-              ))}
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <Sparkles className="h-12 w-12 mx-auto text-slate-400 mb-4" />
-                <p className="text-lg text-slate-600 dark:text-slate-400 mb-4">
-                  No featured listings yet. Be the first to create one!
-                </p>
-                <Button asChild>
-                  <Link href="/sell">Start Selling</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </section>
+      
 
-      {/* Recommended for You - Only show if user is logged in */}
-      {user && (
-        <section className="container mx-auto px-4 py-12 bg-gradient-to-b from-purple-50 to-white dark:from-purple-950/20 dark:to-slate-900">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <Heart className="h-8 w-8 text-pink-600" />
-                <div>
-                  <h2 className="text-3xl font-bold">Recommended for You</h2>
-                  <p className="text-slate-600 dark:text-slate-400">
-                    Personalized picks based on your watchlist and purchase history
-                  </p>
-                </div>
-              </div>
-              <Button variant="outline" asChild>
-                <Link href="/marketplace">{t('common.view')} All</Link>
-              </Button>
-            </div>
-            {loading ? (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[...Array(4)].map((_, i) => (
-                  <Card key={i} className="animate-pulse">
-                    <CardHeader className="p-0">
-                      <div className="aspect-[3/4] bg-slate-200 dark:bg-slate-700 rounded-t-lg" />
-                    </CardHeader>
-                    <CardContent className="p-4 space-y-2">
-                      <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4" />
-                      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2" />
-                      <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : recommendations.length > 0 ? (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {recommendations.map((slab) => (
-                  <SlabCard key={slab.id} slab={slab} />
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <Heart className="h-12 w-12 mx-auto text-slate-400 mb-4" />
-                  <p className="text-lg text-slate-600 dark:text-slate-400 mb-4">
-                    Start adding items to your watchlist to get personalized recommendations!
-                  </p>
-                  <Button variant="outline" asChild>
-                    <Link href="/marketplace">Browse Marketplace</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </section>
-      )}
+      
 
       {/* Hot Deals */}
       <section className="container mx-auto px-4 py-12">
@@ -473,7 +410,7 @@ export default function HomePage() {
               <Link href="/marketplace">{t('common.view')} All</Link>
             </Button>
           </div>
-          {loading ? (
+          {(!isClient || loading) ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[...Array(4)].map((_, i) => (
                 <Card key={i} className="animate-pulse">
@@ -511,21 +448,21 @@ export default function HomePage() {
       </section>
 
       {/* Added Today */}
-      <section className="container mx-auto px-4 py-12 bg-slate-50/50 dark:bg-slate-900/50">
+      <section className="container mx-auto px-4 py-12">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
               <Clock className="h-8 w-8 text-blue-600" />
               <div>
-                <h2 className="text-3xl font-bold">{t('home.addedToday')}</h2>
-                <p className="text-slate-600 dark:text-slate-400">{t('home.addedTodayDesc')}</p>
+                <h2 className="text-3xl font-semibold tracking-tight">{t('home.addedToday')}</h2>
+                <p className="text-slate-700 dark:text-slate-300">{t('home.addedTodayDesc')}</p>
               </div>
             </div>
             <Button variant="outline" asChild>
               <Link href="/marketplace">{t('common.view')} All</Link>
             </Button>
           </div>
-          {loading ? (
+          {(!isClient || loading) ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[...Array(4)].map((_, i) => (
                 <Card key={i} className="animate-pulse">
@@ -566,10 +503,10 @@ export default function HomePage() {
       <section className="container mx-auto px-4 py-20">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
               Categories
             </h2>
-            <p className="text-lg text-slate-600 dark:text-slate-400">
+            <p className="text-lg text-slate-700 dark:text-slate-300">
               Starting with Pokemon TCG, expanding to more categories soon
             </p>
           </div>
@@ -583,23 +520,40 @@ export default function HomePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="aspect-square bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center text-white text-4xl font-bold">
-                  ⚡
-                </div>
+                <Link href="/marketplace?category=pokemon-tcg">
+                  <div className="aspect-square rounded-lg border bg-white dark:bg-slate-900 flex items-center justify-center overflow-hidden">
+                    <Image
+                      src="https://upload.wikimedia.org/wikipedia/commons/9/98/International_Pok%C3%A9mon_logo.svg"
+                      alt="Pokemon TCG Logo"
+                      width={400}
+                      height={200}
+                      className="object-contain h-full w-full p-6"
+                    />
+                  </div>
+                </Link>
               </CardContent>
             </Card>
 
-            <Card className="opacity-60">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
               <CardHeader>
                 <CardTitle className="text-center">Disney Lorcana</CardTitle>
                 <CardDescription className="text-center">
-                  <Badge variant="outline">Coming Soon</Badge>
+                  <Badge>Available Now</Badge>
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="aspect-square bg-gradient-to-br from-purple-400 to-pink-500 rounded-lg flex items-center justify-center text-white text-4xl font-bold">
-                  ✨
-                </div>
+                <Link href="/marketplace?category=disney-lorcana">
+                  <div className="aspect-square rounded-lg border bg-white dark:bg-slate-900 flex items-center justify-center overflow-hidden">
+                    <Image
+                      src="/Disney_Lorcana_Logo.png"
+                      alt="Disney Lorcana Logo"
+                      width={400}
+                      height={200}
+                      className="object-contain h-full w-full p-6"
+                      priority
+                    />
+                  </div>
+                </Link>
               </CardContent>
             </Card>
 
@@ -611,9 +565,7 @@ export default function HomePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="aspect-square bg-gradient-to-br from-blue-400 to-green-500 rounded-lg flex items-center justify-center text-white text-4xl font-bold">
-                  🏀
-                </div>
+                <div className="aspect-square rounded-lg border bg-white dark:bg-slate-900 flex items-center justify-center text-3xl">SC</div>
               </CardContent>
             </Card>
 
@@ -625,9 +577,7 @@ export default function HomePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="aspect-square bg-gradient-to-br from-indigo-400 to-purple-500 rounded-lg flex items-center justify-center text-white text-4xl font-bold">
-                  🔮
-                </div>
+                <div className="aspect-square rounded-lg border bg-white dark:bg-slate-900 flex items-center justify-center text-3xl">MTG</div>
               </CardContent>
             </Card>
           </div>
@@ -637,10 +587,10 @@ export default function HomePage() {
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-20">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
             Ready to Start Trading?
           </h2>
-          <p className="text-lg text-slate-600 dark:text-slate-400 mb-8">
+          <p className="text-lg text-slate-700 dark:text-slate-300 mb-8">
             Join the premier marketplace for authenticated graded collectibles
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -655,7 +605,8 @@ export default function HomePage() {
       </section>
 
       <Footer />
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -715,7 +666,11 @@ const SlabCard = memo(function SlabCard({ slab }: { slab: any }) {
           )}
           <div className="flex items-center justify-between mt-3">
             <span className="text-2xl font-bold text-blue-600">
-              ${slab.price ? formatPrice(slab.price) : "N/A"}
+              {slab.price ? (
+                <PriceDisplay price={slab.price} fromCurrency={slab.currency || "USD"} />
+              ) : (
+                "N/A"
+              )}
             </span>
             {slab.cert_verified && (
               <Badge variant="outline" className="text-xs">

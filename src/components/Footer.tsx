@@ -1,5 +1,5 @@
 
-import { Award } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 export function Footer() {
@@ -8,10 +8,16 @@ export function Footer() {
       <div className="container mx-auto px-4">
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           <div>
-            <div className="flex items-center space-x-2 mb-4">
-              <Award className="h-6 w-6 text-blue-600" />
+            <Link href="/" className="flex items-center space-x-2 mb-4">
+              <Image
+                src="/logosm6.png?v=2"
+                alt="SLab Market logo"
+                width={32}
+                height={32}
+                className="h-8 w-8 object-contain"
+              />
               <span className="text-lg font-bold">Slab Market</span>
-            </div>
+            </Link>
             <p className="text-sm text-slate-600 dark:text-slate-400">
               The premium marketplace for authenticated graded collectibles.
             </p>
@@ -44,6 +50,16 @@ export function Footer() {
           <div>
             <h3 className="font-semibold mb-4">Resources</h3>
             <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+              <li>
+                <Link href="/help" className="hover:text-blue-600 transition-colors">
+                  Help Center
+                </Link>
+              </li>
+              <li>
+                <Link href="/help/faq" className="hover:text-blue-600 transition-colors">
+                  FAQ
+                </Link>
+              </li>
               <li>
                 <Link href="/verification" className="hover:text-blue-600 transition-colors">
                   Buyer Protection

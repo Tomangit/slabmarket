@@ -109,10 +109,12 @@
         <div style="text-align: center; margin: 30px 0;">
           <a href="{{ .ConfirmationURL }}" class="button">Confirm Email Change</a>
         </div>
+        {{ if .Email }}
         <div class="email-box">
           <p style="margin-bottom: 10px; font-size: 14px; color: #666;">New email address:</p>
           <p style="font-size: 18px;">{{ .Email }}</p>
         </div>
+        {{ end }}
         <p style="font-size: 14px; color: #888;">If the button doesn't work, copy and paste the following link into your browser:</p>
         <p style="font-size: 12px; color: #999; word-break: break-all;">
           <a href="{{ .ConfirmationURL }}" class="link">{{ .ConfirmationURL }}</a>

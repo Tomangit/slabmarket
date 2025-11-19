@@ -115,3 +115,7 @@ if (fs.existsSync(logFile)) {
 
 console.log(`\n💡 Aby zobaczyć pełne logi: type import-progress.log`);
 
+
+
+
+

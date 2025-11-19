@@ -18,14 +18,16 @@ const setNameMapping: Record<string, string> = {
 };
 
 function normalizeSetName(setName: string): string {
-  return setNameMapping[setName] || setName;
+  const base = setNameMapping[setName] || setName;
+  // Usuń wariantowe sufiksy, aby nie pojawiały się osobne wpisy w dropdownie
+  return base.replace(/\s+(shadowless|unlimited|1st edition|first edition)$/i, "");
 }
 
 function mapDbSet(set: DbSet): PokemonSet {
   const fallback = findStaticSetBySlug(set.id);
   return {
     slug: set.id,
-    name: set.name,
+    name: normalizeSetName(set.name),
     era: set.era,
     language: (set.language as PokemonSet["language"]) ?? fallback?.language ?? "english",
     releaseYear: set.release_year ?? fallback?.releaseYear ?? undefined,
@@ -42,7 +44,20 @@ export const setService = {
       .order("name", { ascending: true });
 
     if (error || !data || data.length === 0) {
-      return allPokemonSets;
+      // Fallback to static catalog but normalize and deduplicate variant names
+      const normalized = allPokemonSets.map((s) => ({
+        ...s,
+        name: normalizeSetName(s.name),
+      }));
+      const dedup = new Map<string, PokemonSet>();
+      for (const s of normalized) {
+        const key = `${s.language}||${s.name}`;
+        const cur = dedup.get(key);
+        if (!cur || (s.releaseYear ?? 99999) < (cur.releaseYear ?? 99999)) {
+          dedup.set(key, s);
+        }
+      }
+      return Array.from(dedup.values());
     }
 
     const mapped = data.map(mapDbSet);
@@ -54,7 +69,13 @@ export const setService = {
       .not("set_name", "is", null);
 
     if (cardsData) {
-      const cardSetNames = new Set(cardsData.map((c) => c.set_name).filter(Boolean));
+      // Znormalizuj nazwy pochodzące z kart (wytnij warianty typu Shadowless/Unlimited)
+      const cardSetNames = new Set(
+        cardsData
+          .map((c) => c.set_name)
+          .filter(Boolean)
+          .map((n) => normalizeSetName(n as string))
+      );
       const existingSetNames = new Set(mapped.map((s) => s.name));
       
       // Add missing sets from cards as fallback sets
@@ -102,7 +123,22 @@ export const setService = {
       });
     }
 
-    return mapped;
+    // Deduplicate by (language, name) after normalization - keep earliest releaseYear, else first occurrence
+    const unique = new Map<string, PokemonSet>();
+    for (const s of mapped) {
+      const key = `${s.language}||${s.name}`;
+      const existing = unique.get(key);
+      if (!existing) {
+        unique.set(key, s);
+      } else {
+        const a = existing.releaseYear ?? 99999;
+        const b = s.releaseYear ?? 99999;
+        if (b < a) {
+          unique.set(key, s);
+        }
+      }
+    }
+    return Array.from(unique.values());
   },
 
   async getEnglishSets(): Promise<PokemonSet[]> {

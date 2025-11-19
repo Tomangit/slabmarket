@@ -95,7 +95,10 @@ async function fetchSetsFromAPI(language) {
         id: set.id,
         name: set.name,
         era: set.series ?? "Unknown",
-        language: "english",
+        // Use provided language parameter, or default to 'english'
+        // Note: Pokemon TCG API may not always return language in set data,
+        // so we rely on the language parameter passed to the function
+        language: language || 'english',
         release_year: set.releaseDate ? Number(set.releaseDate.slice(0, 4)) : null,
       })),
     );

@@ -24,7 +24,7 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 console.log("Supabase client initialized\n");
 
-const PAGE_SIZE = 10; // Kompromis między szybkością a stabilnością - API często timeoutuje
+const DEFAULT_PAGE_SIZE = 10; // Kompromis między szybkością a stabilnością - API często timeoutuje
 const API_BASE = "https://api.pokemontcg.io/v2";
 const CARD_UUID_NAMESPACE = "3c7c5669-9c35-4d90-9f3f-9ad44e3d8adc"; // arbitrary, but constant
 
@@ -62,35 +62,52 @@ async function fetchSets({ language, setFilter }) {
   return sets;
 }
 
-async function fetchCardsForSet(setName, setId) {
+async function fetchCardsForSet(setName, setId, { pageSize = DEFAULT_PAGE_SIZE, skipErrors = false } = {}) {
   console.log(`  Fetching cards for set: "${setName}" (id: ${setId})`);
   
-  // Always use set.id from database - it's the PokemonTCG API set ID and much faster
-  if (!setId) {
-    throw new Error(`Set ID is required for "${setName}"`);
+  // Prefer set.id from database (PokemonTCG API short ID). If missing/nieprawidłowe, fall back to set.name
+  let query;
+  // Treat IDs that are not plain lowercase a-z0-9 (no dashes/underscores) as invalid for PokemonTCG API short IDs.
+  // Example of valid IDs: base1, xy7, swsh10, sv3pt5
+  // Example of invalid IDs we seeded before: english-base-set, english--lternate-rt-romos
+  const idLooksInvalid = !setId || !/^[a-z0-9]+$/.test(setId) || setId.length > 50;
+  if (!idLooksInvalid) {
+    query = `set.id:"${setId}"`;
+    console.log(`    Using set.id query: ${query}`);
+  } else {
+    query = `set.name:"${setName.replace(/"/g, '\\"')}"`;
+    console.log(`    Using fallback set.name query: ${query}`);
   }
   
-  const query = `set.id:"${setId}"`;
-  console.log(`    Using set.id query: ${query}`);
-  
   const encodedQuery = encodeURIComponent(query);
+  // Resume: jeśli mamy już jakieś karty w bazie dla tego seta, zacznij od kolejnej strony
   let page = 1;
+  try {
+    const { count } = await supabase
+      .from("cards")
+      .select("*", { count: "exact", head: true })
+      .eq("set_name", setName);
+    if (typeof count === "number" && count > 0) {
+      page = Math.floor(count / pageSize) + 1;
+      console.log(`    Resume enabled: existing=${count}, starting from page ${page}`);
+    }
+  } catch (_) {
+    // ignore resume errors
+  }
   const cards = [];
-  const REQUEST_TIMEOUT = 120000; // 120 seconds (2 minuty) - timeouty są obsłużone, zwracamy częściowe wyniki
+  const REQUEST_TIMEOUT = 120000; // 120s
 
   while (true) {
-    const url = `${API_BASE}/cards?q=${encodedQuery}&pageSize=${PAGE_SIZE}&page=${page}`;
+    const url = `${API_BASE}/cards?q=${encodedQuery}&pageSize=${pageSize}&page=${page}`;
     console.log(`    Requesting page ${page}...`);
     console.log(`    URL: ${url.substring(0, 100)}...`);
     
     let response;
     const startTime = Date.now();
     
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    // Do 5 prób z wykładniczym backoffem
+    for (let attempt = 1; attempt <= 5; attempt++) {
       try {
-        if (attempt > 1) {
-          console.log(`    Retry attempt ${attempt}/3...`);
-        }
         
         console.log(`    Starting fetch (attempt ${attempt})...`);
         
@@ -104,8 +121,7 @@ async function fetchCardsForSet(setName, setId) {
           headers["X-Api-Key"] = process.env.POKEMON_TCG_API_KEY;
         }
         
-        // Użyj Promise.race dla timeoutu zamiast AbortController
-        // (AbortController może mieć problemy z niektórymi wersjami Node.js)
+        // Użyj Promise.race dla timeoutu
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => {
             console.log(`    Timeout triggered after ${REQUEST_TIMEOUT}ms`);
@@ -128,59 +144,38 @@ async function fetchCardsForSet(setName, setId) {
         }
         
         console.log(`    ✗ Request failed with status ${response.status}`);
-        
-        if (attempt === 3) {
-          const body = await response.text();
-          // Jeśli mamy już jakieś karty, zwróć je zamiast rzucać błąd
-          if (cards.length > 0) {
-            console.log(`    ⚠ API error (${response.status}) after 3 attempts - zwracam ${cards.length} kart pobranych do tej pory`);
-            return cards;
+        if (attempt === 5) {
+          if (skipErrors && cards.length > 0) {
+            console.log(`    ⚠ API error ${response.status} after retries; skipErrors=on → skipping page ${page}`);
+            response = null;
+          } else {
+        const body = await response.text();
+            throw new Error(`PokemonTCG API error (${response.status}): ${body.substring(0, 200)}`);
           }
-          throw new Error(`PokemonTCG API error (${response.status}) after ${attempt} attempts: ${body.substring(0, 200)}`);
         }
-        
-        // Dłuższe opóźnienia dla 504 (API przeciążone)
-        const backoffDelay = response?.status === 504 
-          ? 5000 * attempt // 5s, 10s, 15s dla 504
-          : 2000 * Math.pow(2, attempt - 1); // 2s, 4s, 8s dla innych błędów
-        console.log(`    Waiting ${backoffDelay}ms before retry (API może być przeciążone)...`);
-        await sleep(backoffDelay);
       } catch (error) {
         const elapsed = Date.now() - startTime;
-        if (error.message.includes('timeout') || error.message.includes('Timeout')) {
-          console.error(`    ✗ Request timeout after ${elapsed}ms`);
-          if (attempt === 3) {
-            // Jeśli timeout po 3 próbach, zwróć karty które udało się pobrać do tej pory
-            console.log(`    ⚠ Timeout after 3 attempts - zwracam ${cards.length} kart pobranych do tej pory`);
-            if (cards.length > 0) {
-              return cards; // Zwróć częściowo pobrane karty
-            }
-            throw new Error(`Request timeout after ${REQUEST_TIMEOUT}ms - no cards fetched`);
-          }
-        } else {
-          console.error(`    ✗ Error: ${error.message}`);
-          if (attempt === 3) {
-            // Jeśli błąd po 3 próbach, zwróć karty które udało się pobrać
-            if (cards.length > 0) {
-              console.log(`    ⚠ Error after 3 attempts - zwracam ${cards.length} kart pobranych do tej pory`);
-              return cards;
-            }
+        console.error(`    ✗ Error: ${error.message} after ${elapsed}ms`);
+        if (attempt === 5) {
+          if (cards.length > 0) {
+            console.log(`    ⚠ Giving up on page ${page} after retries - keeping ${cards.length} cards. Will try next page.`);
+            response = null;
+          } else {
             throw error;
           }
+        } else {
+          const backoff = 1000 * Math.pow(2, attempt - 1);
+          console.log(`    Waiting ${backoff}ms before retry...`);
+          await sleep(backoff);
         }
-        const backoffDelay = 2000 * Math.pow(2, attempt - 1); // Dłuższe opóźnienia
-        console.log(`    Waiting ${backoffDelay}ms before retry...`);
-        await sleep(backoffDelay);
       }
     }
 
     if (!response || !response.ok) {
-      // Jeśli mamy już jakieś karty, zwróć je zamiast rzucać błąd
-      if (cards.length > 0) {
-        console.log(`    ⚠ Response not OK (${response?.status || 'unknown'}) - zwracam ${cards.length} kart pobranych do tej pory`);
-        return cards;
-      }
-      throw new Error(`Failed to fetch cards: response is not OK`);
+      // Przejdź do następnej strony jeśli mamy już jakieś dane (spróbujemy zebrać jak najwięcej)
+      if (cards.length === 0) throw new Error(`Failed to fetch cards: response is not OK`);
+      page += 1;
+      continue;
     }
 
     console.log(`    Parsing response...`);
@@ -190,14 +185,14 @@ async function fetchCardsForSet(setName, setId) {
 
     console.log(`    ✓ Page ${page}: ${batch.length} cards (total: ${cards.length})`);
 
-    if (batch.length < PAGE_SIZE) {
-      console.log(`    Last page reached (${batch.length} < ${PAGE_SIZE})`);
+    if (batch.length < pageSize) {
+      console.log(`    Last page reached (${batch.length} < ${pageSize})`);
       break;
     }
 
     page += 1;
-    console.log(`    Waiting 2000ms before next page...`);
-    await sleep(2000); // Opóźnienie - API potrzebuje czasu między zapytaniami
+    console.log(`    Waiting 1000ms before next page...`);
+    await sleep(1000); // Krótsze opóźnienie dla szybszego importu
   }
 
   console.log(`  ✓ Total cards fetched: ${cards.length}`);
@@ -208,16 +203,23 @@ function mapCardPayload(card, set) {
   // Generate deterministic UUID based on unique constraint: name + set_name + card_number
   const uniqueKey = `${set.name}::${card.name}::${card.number ?? ""}`;
   const uuid = uuidv5(uniqueKey, CARD_UUID_NAMESPACE);
+  
+  // Generate slug (will be auto-generated by database trigger if null, but we can generate it here for consistency)
+  // Format: set-name-card-name-cardnumber (all lowercase, hyphenated)
+  const baseSlug = `${(set.name || "").toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-")}-${(card.name || "").toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-")}`;
+  const slug = card.number ? `${baseSlug}-${card.number}` : baseSlug;
+  
   return {
     id: uuid,
     name: card.name,
     set_name: set.name,
+    slug: slug.replace(/--+/g, "-").replace(/^-+|-+$/g, ""), // Clean up slug
     year: set.release_year ?? (card.releaseDate ? Number(card.releaseDate.slice(0, 4)) : null),
     card_number: card.number ?? null,
     rarity: card.rarity ?? null,
     image_url: card.images?.large ?? card.images?.small ?? null,
     description: card.flavorText ?? null,
-    category_id: null,
+    category_id: 'pokemon-tcg',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -300,22 +302,33 @@ async function main() {
   const limitIndex = args.indexOf("--limit");
   const limit = limitIndex !== -1 ? parseInt(args[limitIndex + 1], 10) : undefined;
 
+  // CLI flags
+  const pageSizeIndex = args.indexOf("--pageSize");
+  const pageSize = pageSizeIndex !== -1 ? parseInt(args[pageSizeIndex + 1], 10) : DEFAULT_PAGE_SIZE;
+  const skipErrors = args.includes("--skip") || args.includes("--skipErrors");
+
   const sets = await fetchSets({ language, setFilter });
   if (!sets.length) {
     console.log("No sets found with current filters. Nothing to import.");
     return;
   }
 
-  // Pomiń zestawy które już mają karty (przyspiesza import)
+  // Strategia wyboru setów do importu:
+  // - jeśli użytkownik podał --set, NIE pomijaj nawet jeśli są już jakieś karty (umożliwia wznawianie)
+  // - w przeciwnym razie pomijaj zestawy, które już mają jakiekolwiek karty (szybszy przebieg)
+  let setsToProcess = sets;
+  if (!setFilter) {
   console.log("Sprawdzanie które zestawy już mają karty...");
   const { data: existingCards } = await supabase
     .from("cards")
     .select("set_name");
-  
   const setsWithCards = new Set((existingCards || []).map(c => c.set_name));
-  const setsToProcess = sets.filter(set => !setsWithCards.has(set.name));
-  
+    setsToProcess = sets.filter(set => !setsWithCards.has(set.name));
   console.log(`  Zestawy z kartami: ${setsWithCards.size}`);
+  } else {
+    console.log("Tryb pojedynczego seta — wznawiam import bez pomijania.");
+  }
+  
   console.log(`  Zestawy do importu: ${setsToProcess.length}`);
   
   if (setsToProcess.length === 0) {
@@ -331,7 +344,7 @@ async function main() {
     console.log("─".repeat(60));
     try {
       // Use set.id from database (it's the PokemonTCG API set ID)
-      const cards = await fetchCardsForSet(set.name, set.id);
+      const cards = await fetchCardsForSet(set.name, set.id, { pageSize, skipErrors });
       if (!cards.length) {
         console.log(`  ⚠ No cards found for ${set.name}. Skipping.`);
         continue;

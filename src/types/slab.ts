@@ -7,6 +7,7 @@ export interface Slab {
   set: string;
   cardNumber?: string;
   year?: number;
+  firstEdition?: boolean;
   
   gradingCompany: "PSA" | "BGS" | "CGC" | "SGC" | "ACE";
   grade: string;

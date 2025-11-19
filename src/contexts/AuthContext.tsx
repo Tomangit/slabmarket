@@ -75,10 +75,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq("id", userId)
         .single();
 
-      if (error) throw error;
-      setProfile(data);
-      // Update Sentry user context with profile data
+      // Profile should be created automatically by database trigger
+      // If it doesn't exist, try to create it via API endpoint
+      // 406 = Not Acceptable (often RLS/permission issue)
+      // PGRST116 = No rows returned
+      // 42501 = Insufficient privilege
+      // PGRST301 = Permission denied
+      if (
+        error &&
+        (error.code === 'PGRST116' ||
+          error.code === '42501' ||
+          error.code === 'PGRST301' ||
+          error.message?.includes('406') ||
+          error.message?.includes('Not Acceptable'))
+      ) {
+        // Try to create profile via API endpoint
+        try {
+          const response = await fetch('/api/create-profile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId,
+              email: userEmail,
+              fullName: null,
+            }),
+          });
+
+          if (response.ok) {
+            const { profile: newProfile } = await response.json();
+            if (newProfile) {
+              setProfile(newProfile);
+              setSentryUser({
+                id: userId,
+                email: userEmail,
+                username: newProfile?.full_name || undefined,
+              });
+              setLoading(false);
+              return;
+            }
+          } else {
+            const errorText = await response.text();
+            console.warn("Failed to create profile via API:", response.status, errorText);
+          }
+        } catch (apiError) {
+          console.error("Error creating profile via API:", apiError);
+        }
+        
+        // If API call failed, just continue without profile (non-critical)
+        setLoading(false);
+        return;
+      } else if (error) {
+        // For other errors, log but don't block the app
+        console.error("Error loading profile:", error);
+        setLoading(false);
+        return;
+      }
+
       if (data) {
+        setProfile(data);
+        // Update Sentry user context with profile data
         setSentryUser({
           id: userId,
           email: userEmail,
@@ -125,12 +182,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error;
 
     if (data.user) {
+      // Create or update profile
       const { error: profileError } = await supabase
         .from("profiles")
-        .update({ full_name: username })
-        .eq("id", data.user.id);
+        .upsert({
+          id: data.user.id,
+          email: data.user.email,
+          full_name: username,
+        }, {
+          onConflict: "id"
+        });
       
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error("Error creating profile:", profileError);
+        throw profileError;
+      }
+
+      // Create default wishlist for the user
+      try {
+        const { wishlistService } = await import("@/services/wishlistService");
+        await wishlistService.ensureDefaultWishlist(data.user.id);
+      } catch (wishlistError) {
+        console.error("Error creating default wishlist:", wishlistError);
+        // Don't throw - wishlist creation is not critical for signup
+      }
     }
   };
 

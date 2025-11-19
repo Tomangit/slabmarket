@@ -184,29 +184,21 @@ from (values
   ('Expedition', 'e-Card'),
   ('Legendary Collection', 'Legendary Collection'),
   ('Neo Destiny', 'Neo'),
-  ('Neo Destiny 1st Edition', 'Neo'),
   ('Neo Revelation', 'Neo'),
-  ('Neo Revelation 1st Edition', 'Neo'),
   ('Southern Islands', 'Neo'),
   ('Neo Discovery', 'Neo'),
-  ('Neo Discovery 1st Edition', 'Neo'),
   ('Neo Genesis', 'Neo'),
   ('Neo Genesis 1st Edition', 'Neo'),
   ('Gym Challenge', 'Gym'),
-  ('Gym Challenge 1st Edition', 'Gym'),
   ('Gym Heroes', 'Gym'),
-  ('Gym Heroes 1st Edition', 'Gym'),
   ('Team Rocket', 'Base'),
-  ('Team Rocket 1st Edition', 'Base'),
   ('Base Set 2', 'Base'),
   ('Fossil', 'Base'),
-  ('Fossil 1st Edition', 'Base'),
   ('WOTC Promo', 'Base'),
   ('Jungle', 'Base'),
-  ('Jungle 1st Edition', 'Base'),
   ('Base Set Unlimited', 'Base'),
   ('Base Set Shadowless', 'Base'),
-  ('Base Set 1st Edition', 'Base')
+  ('Base Set', 'Base')
 ) as english_sets(name, era)
 on conflict (id) do nothing;
 

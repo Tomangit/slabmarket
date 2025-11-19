@@ -5,14 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { MainHeader } from "@/components/MainHeader";
 import { Footer } from "@/components/Footer";
 import { ShieldCheck, Heart, Star, Package, User, Circle, Square, Building2, Calendar, Users, Trophy, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
 import { cardService } from "@/services/cardService";
+import { setService } from "@/services/setService";
+import { AddCardToWishlistButton } from "@/components/AddCardToWishlistButton";
+import { AddToWishlistButton } from "@/components/AddToWishlistButton";
 import type { Database } from "@/integrations/supabase/types";
 import { useCart } from "@/contexts/CartContext";
+import { SEO } from "@/components/SEO";
+import { pokemonSetReleaseYears } from "@/data/pokemonSetReleaseYears";
 
 type Card = Database["public"]["Tables"]["cards"]["Row"];
 type Slab = Database["public"]["Tables"]["slabs"]["Row"] & {
@@ -121,7 +128,35 @@ export default function CardDetailPage() {
   const [card, setCard] = useState<Card | null>(null);
   const [listings, setListings] = useState<Slab[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState("price-low");
+  const [setSlug, setSetSlug] = useState<string | null>(null);
+  const [availableLanguages, setAvailableLanguages] = useState<string[]>([]);
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const [availableVariants, setAvailableVariants] = useState({
+    first_edition: false,
+    shadowless: false,
+    pokemon_center_edition: false,
+    prerelease: false,
+    staff: false,
+    tournament_card: false,
+    error_card: false,
+    foil: false,
+    holo: false,
+    reverse_holo: false,
+  });
+  const [filters, setFilters] = useState({
+    first_edition: false,
+    shadowless: false,
+    pokemon_center_edition: false,
+    prerelease: false,
+    staff: false,
+    tournament_card: false,
+    error_card: false,
+    foil: false,
+    holo: false,
+    reverse_holo: false,
+  });
   const { addItem } = useCart();
 
   useEffect(() => {
@@ -130,21 +165,108 @@ export default function CardDetailPage() {
     }
   }, [id]);
 
-  const loadCardData = async (cardId: string) => {
+  const loadCardData = async (identifier: string) => {
     try {
       setLoading(true);
-      const [cardData, listingsData] = await Promise.all([
-        cardService.getCardById(cardId),
-        cardService.getCardListings(cardId)
-      ]);
+      setError(null);
+      
+      // Try slug or ID (for backward compatibility)
+      const cardData = await cardService.getCardBySlugOrId(identifier);
+      
+      if (!cardData) {
+        setError("Card not found");
+        return;
+      }
+      
+      // Load available languages only for non-Lorcana (Lorcana traktujemy jako EN only)
+      if (cardData.category_id !== 'disney-lorcana') {
+        const languages = await cardService.getCardAvailableLanguages(cardData.id);
+        console.log('Available languages for card:', languages);
+        setAvailableLanguages(languages);
+      } else {
+        setAvailableLanguages([]);
+      }
+      
+      // Load available variants for this card
+      const variants = await cardService.getCardAvailableVariants(cardData.id);
+      console.log('Available variants for card:', variants);
+      setAvailableVariants(variants);
+      
+      // Load listings with current filters
+      await loadListings(cardData.id);
+      
       setCard(cardData);
-      setListings(listingsData);
-    } catch (error) {
+      
+      // Find set slug for the set name
+      if (cardData.set_name) {
+        try {
+          const sets = await setService.getAllSets();
+          const matchingSet = sets.find((s) => s.name === cardData.set_name);
+          if (matchingSet) {
+            setSetSlug(matchingSet.slug);
+          }
+        } catch (error) {
+          console.error("Error loading sets:", error);
+        }
+      }
+      
+      // Redirect to slug URL if accessed via ID (for SEO and cleaner URLs)
+      if (cardData.slug && identifier !== cardData.slug) {
+        router.replace(`/card/${cardData.slug}`, undefined, { shallow: true });
+      }
+    } catch (error: any) {
       console.error("Error loading card data:", error);
+      
+      // Check if it's a "not found" error
+      if (error?.message?.includes("not found") || error?.message?.includes("Card not found")) {
+        setError(`Card not found: ${identifier}. The card may have been removed or doesn't exist in the database.`);
+      } else {
+        setError(error?.message || "Failed to load card. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const loadListings = async (cardId: string) => {
+    try {
+      console.log("[CardDetailPage] Loading listings for card_id:", cardId);
+      const filterParams: any = {};
+      
+      // Add language filter
+      if (selectedLanguages.length > 0) {
+        filterParams.languages = selectedLanguages;
+      }
+      
+      // Add variant filters (only if true)
+      if (filters.first_edition) filterParams.first_edition = true;
+      if (filters.shadowless) filterParams.shadowless = true;
+      if (filters.pokemon_center_edition) filterParams.pokemon_center_edition = true;
+      if (filters.prerelease) filterParams.prerelease = true;
+      if (filters.staff) filterParams.staff = true;
+      if (filters.tournament_card) filterParams.tournament_card = true;
+      if (filters.error_card) filterParams.error_card = true;
+      if (filters.foil) filterParams.foil = true;
+      if (filters.holo) filterParams.holo = true;
+      
+      const listingsData = await cardService.getCardListings(cardId, filterParams);
+      console.log("[CardDetailPage] Listings loaded:", {
+        cardId,
+        listingsCount: listingsData?.length || 0,
+        listings: listingsData
+      });
+      setListings(listingsData || []);
+    } catch (error) {
+      console.error("[CardDetailPage] Error loading listings:", error);
+      setListings([]);
+    }
+  };
+
+  useEffect(() => {
+    if (card?.id) {
+      loadListings(card.id);
+    }
+  }, [selectedLanguages, filters, card?.id]);
 
   const sortedListings = [...listings].sort((a, b) => {
     switch (sortBy) {
@@ -191,20 +313,41 @@ export default function CardDetailPage() {
     );
   }
 
-  if (!card) {
+  if (!loading && !card) {
     return (
       <div className="min-h-screen flex flex-col">
         <MainHeader />
         <div className="flex-1 flex items-center justify-center">
           <Card className="max-w-md">
             <CardHeader>
-              <CardTitle>Card Not Found</CardTitle>
-              <CardDescription>The card you&apos;re looking for doesn&apos;t exist.</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-red-500" />
+                Card Not Found
+              </CardTitle>
+              <CardDescription>
+                {error || "The card you're looking for doesn't exist."}
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button asChild>
-                <Link href="/marketplace">Back to Marketplace</Link>
-              </Button>
+            <CardContent className="space-y-4">
+              {error && (
+                <div className="text-sm text-slate-600 dark:text-slate-400">
+                  <p>Error details: {error}</p>
+                  <p className="mt-2">If you believe this is an error, please check:</p>
+                  <ul className="list-disc list-inside mt-1 space-y-1">
+                    <li>That the card ID or slug is correct</li>
+                    <li>That the card exists in the database</li>
+                    <li>That you have proper permissions to view the card</li>
+                  </ul>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Button asChild variant="outline">
+                  <Link href="/marketplace">Back to Marketplace</Link>
+                </Button>
+                <Button asChild>
+                  <Link href="/">Go Home</Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -217,9 +360,66 @@ export default function CardDetailPage() {
   const highestPrice = listings.length > 0 ? Math.max(...listings.map(l => l.price)) : null;
   const avgPrice = listings.length > 0 ? listings.reduce((sum, l) => sum + l.price, 0) / listings.length : null;
 
+  const cardTitle = `${card.name}${card.card_number ? ` #${card.card_number}` : ""} - ${card.set_name}`;
+  const setHref = setSlug
+    ? `/marketplace?set=${encodeURIComponent(setSlug)}`
+    : `/marketplace?set_name=${encodeURIComponent(card.set_name || "")}`;
+  const cardDescription = `Buy and sell ${card.name}${card.card_number ? ` #${card.card_number}` : ""} from ${card.set_name}. ${listings.length} active listings available. ${lowestPrice ? `Starting at $${lowestPrice.toFixed(2)}.` : ""} PSA, BGS, CGC certified graded cards.`;
+  const cardImage = card.image_url || "/og-image.jpg";
+  const derivedYear = (() => {
+    if (card.year) return card.year;
+    if (card.set_name) {
+      const enKey = `english-${card.set_name}`;
+      const jpKey = `japanese-${card.set_name}`;
+      return (
+        (pokemonSetReleaseYears as any)[enKey] ||
+        (pokemonSetReleaseYears as any)[jpKey] ||
+        null
+      );
+    }
+    return null;
+  })();
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
-      <MainHeader currentPage="marketplace" />
+    <>
+      <SEO
+        title={cardTitle}
+        description={cardDescription}
+        image={cardImage}
+        type="product"
+        keywords={[
+          card.name,
+          card.set_name,
+          "graded card",
+          "trading card",
+          "Pokemon card",
+          card.grading_company?.name || "PSA",
+          "slab",
+          "authenticated card",
+        ]}
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: cardTitle,
+          description: cardDescription,
+          image: cardImage,
+          brand: {
+            "@type": "Brand",
+            name: card.set_name,
+          },
+          offers: listings.length > 0 ? {
+            "@type": "AggregateOffer",
+            priceCurrency: "USD",
+            lowPrice: lowestPrice?.toFixed(2),
+            highPrice: highestPrice?.toFixed(2),
+            offerCount: listings.length,
+            availability: "https://schema.org/InStock",
+          } : undefined,
+          category: "Trading Cards",
+        }}
+      />
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
+        <MainHeader currentPage="marketplace" />
 
       <div className="container mx-auto px-4 py-8 flex-1">
         <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-6">
@@ -249,27 +449,59 @@ export default function CardDetailPage() {
           {/* Card Info */}
           <div className="lg:col-span-2 space-y-6">
             <div>
-              <div className="flex items-start justify-between mb-2">
-                <div>
+              <div className="flex items-start justify-between mb-2 relative">
+                <div className="flex-1">
                   <h1 className="text-3xl font-bold mb-2">{card.name}</h1>
                   <p className="text-lg text-slate-600 dark:text-slate-400">
-                    {card.set_name} {card.card_number && `• #${card.card_number}`}
-                  </p>
-                  <div className="flex items-center gap-3 mt-2">
+                    <Link 
+                      href={setHref}
+                      className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors underline"
+                    >
+                      {card.set_name}
+                    </Link>
+                    {card.card_number && ` • #${card.card_number}`}
+                    {derivedYear && ` • ${derivedYear}`}
                     {card.rarity && (
-                      <Badge>{card.rarity}</Badge>
+                      <> • <Badge className="inline-flex align-middle">{card.rarity}</Badge></>
                     )}
+                  </p>
+                  {/* Illustrator link: tylko dla nie-Lorcana */}
+                  {card.category_id !== 'disney-lorcana' && card.description && (() => {
+                    const match = card.description.match(/Illustrator:\s*([^\n]+)/i);
+                    if (!match) return null;
+                    const name = match[1].trim();
+                    return (
+                      <div className="mt-1">
+                        <Link
+                          href={`/marketplace?illustrator=${encodeURIComponent(name)}`}
+                          className="text-sm underline transition-colors text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
+                        >
+                          Illustrator: {name}
+                        </Link>
                   </div>
+                    );
+                  })()}
                 </div>
-                <Button variant="outline" size="icon">
-                  <Heart className="h-5 w-5" />
-                </Button>
+                <div className="ml-4 flex-shrink-0" style={{ position: 'relative', zIndex: 99999 }}>
+                  {card?.id && (
+                    <AddCardToWishlistButton
+                      cardId={card.id}
+                      variant="outline"
+                      size="icon"
+                    />
+                  )}
+                </div>
               </div>
 
-              {card.description && (
+              {card.category_id !== 'disney-lorcana' && card.description && (
+                (() => {
+                  const cleaned = card.description.replace(/^Illustrator:\s*[^\n]+\n?/i, "");
+                  return cleaned ? (
                 <p className="text-slate-700 dark:text-slate-300 mt-4">
-                  {card.description}
+                      {cleaned}
                 </p>
+                  ) : null;
+                })()
               )}
             </div>
 
@@ -301,16 +533,252 @@ export default function CardDetailPage() {
               </Card>
             </div>
 
-            {/* Stats */}
-            <div className="flex gap-6 text-sm">
-              <div className="flex items-center gap-2">
-                <Package className="h-4 w-4 text-slate-400" />
-                <span>{listings.length} available listing{listings.length !== 1 ? 's' : ''}</span>
+            {/* Stats and Filters */}
+            <div className="flex flex-col gap-4">
+              {/* Stats */}
+              <div className="flex gap-6 text-sm">
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4 text-slate-400" />
+                  <span>{listings.length} available listing{listings.length !== 1 ? 's' : ''}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-slate-400" />
+                  <span>{new Set(listings.map(l => l.seller_id)).size} unique seller{new Set(listings.map(l => l.seller_id)).size !== 1 ? 's' : ''}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-slate-400" />
-                <span>{new Set(listings.map(l => l.seller_id)).size} unique seller{new Set(listings.map(l => l.seller_id)).size !== 1 ? 's' : ''}</span>
-              </div>
+
+              {/* Filters Section */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="space-y-4">
+                    {/* Language Filters – ukrywamy dla Lorcany */}
+                    {card.category_id !== 'disney-lorcana' && (
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Language</Label>
+                      {availableLanguages.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {availableLanguages.map((lang) => {
+                            const isSelected = selectedLanguages.includes(lang);
+                            const flagEmoji: Record<string, string> = {
+                              english: '🇬🇧',
+                              polish: '🇵🇱',
+                              japanese: '🇯🇵',
+                              french: '🇫🇷',
+                              german: '🇩🇪',
+                              spanish: '🇪🇸',
+                              italian: '🇮🇹',
+                              portuguese: '🇵🇹',
+                              korean: '🇰🇷',
+                              chinese: '🇨🇳',
+                            };
+                            return (
+                              <label
+                                key={lang}
+                                className={`flex items-center gap-2 px-2 py-1 rounded-md border text-sm transition-colors cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-blue-100 dark:bg-blue-900 border-blue-500 text-blue-900 dark:text-blue-100'
+                                    : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
+                                }`}
+                              >
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setSelectedLanguages([...selectedLanguages, lang]);
+                                    } else {
+                                      setSelectedLanguages(selectedLanguages.filter(l => l !== lang));
+                                    }
+                                  }}
+                                />
+                                <span className="capitalize">{lang}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          No language data available for this card's listings. Language information will appear here once listings with language data are added.
+                        </p>
+                      )}
+                    </div>
+                    )}
+
+                    {/* Variant Filters */}
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Variants</Label>
+                      {card.category_id === 'disney-lorcana' ? (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="foil"
+                              checked={filters.foil}
+                              onCheckedChange={(checked) =>
+                                setFilters({ ...filters, foil: checked === true })
+                              }
+                            />
+                            <Label htmlFor="foil" className="text-sm cursor-pointer">Foil</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="holo"
+                              checked={filters.holo}
+                              onCheckedChange={(checked) =>
+                                setFilters({ ...filters, holo: checked === true })
+                              }
+                            />
+                            <Label htmlFor="holo" className="text-sm cursor-pointer">Holo</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="tournament"
+                              checked={filters.tournament_card}
+                              onCheckedChange={(checked) =>
+                                setFilters({ ...filters, tournament_card: checked === true })
+                              }
+                            />
+                            <Label htmlFor="tournament" className="text-sm cursor-pointer flex items-center gap-1">
+                              <Trophy className="h-4 w-4" />
+                              Tournament
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="error-card"
+                              checked={filters.error_card}
+                              onCheckedChange={(checked) =>
+                                setFilters({ ...filters, error_card: checked === true })
+                              }
+                            />
+                            <Label htmlFor="error-card" className="text-sm cursor-pointer flex items-center gap-1">
+                              <AlertCircle className="h-4 w-4" />
+                              Error Card
+                            </Label>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id="first-edition"
+                                checked={filters.first_edition}
+                                onCheckedChange={(checked) =>
+                                  setFilters({ ...filters, first_edition: checked === true })
+                                }
+                              />
+                              <Label htmlFor="first-edition" className="text-sm cursor-pointer flex items-center gap-1">
+                                <div className="relative h-4 w-4">
+                                  <Circle className="h-4 w-4" />
+                                  <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold leading-none">1</span>
+                                </div>
+                                First Edition
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id="shadowless"
+                                checked={filters.shadowless}
+                                onCheckedChange={(checked) =>
+                                  setFilters({ ...filters, shadowless: checked === true })
+                                }
+                              />
+                              <Label htmlFor="shadowless" className="text-sm cursor-pointer flex items-center gap-1">
+                                <Square className="h-4 w-4 stroke-[1.5]" />
+                                Shadowless
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id="holo-variant"
+                                checked={filters.holo}
+                                onCheckedChange={(checked) =>
+                                  setFilters({ ...filters, holo: checked === true })
+                                }
+                              />
+                              <Label htmlFor="holo-variant" className="text-sm cursor-pointer">Holo</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id="reverse-holo"
+                                checked={filters.reverse_holo}
+                                onCheckedChange={(checked) =>
+                                  setFilters({ ...filters, reverse_holo: checked === true })
+                                }
+                              />
+                              <Label htmlFor="reverse-holo" className="text-sm cursor-pointer">Reverse</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id="pokemon-center"
+                                checked={filters.pokemon_center_edition}
+                                onCheckedChange={(checked) =>
+                                  setFilters({ ...filters, pokemon_center_edition: checked === true })
+                                }
+                              />
+                              <Label htmlFor="pokemon-center" className="text-sm cursor-pointer flex items-center gap-1">
+                                <Building2 className="h-4 w-4" />
+                                Pokemon Center
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id="prerelease"
+                                checked={filters.prerelease}
+                                onCheckedChange={(checked) =>
+                                  setFilters({ ...filters, prerelease: checked === true })
+                                }
+                              />
+                              <Label htmlFor="prerelease" className="text-sm cursor-pointer flex items-center gap-1">
+                                <Calendar className="h-4 w-4" />
+                                Prerelease
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id="staff"
+                                checked={filters.staff}
+                                onCheckedChange={(checked) =>
+                                  setFilters({ ...filters, staff: checked === true })
+                                }
+                              />
+                              <Label htmlFor="staff" className="text-sm cursor-pointer flex items-center gap-1">
+                                <Users className="h-4 w-4" />
+                                Staff
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id="tournament"
+                                checked={filters.tournament_card}
+                                onCheckedChange={(checked) =>
+                                  setFilters({ ...filters, tournament_card: checked === true })
+                                }
+                              />
+                              <Label htmlFor="tournament" className="text-sm cursor-pointer flex items-center gap-1">
+                                <Trophy className="h-4 w-4" />
+                                Tournament
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id="error-card"
+                                checked={filters.error_card}
+                                onCheckedChange={(checked) =>
+                                  setFilters({ ...filters, error_card: checked === true })
+                                }
+                              />
+                              <Label htmlFor="error-card" className="text-sm cursor-pointer flex items-center gap-1">
+                                <AlertCircle className="h-4 w-4" />
+                                Error Card
+                              </Label>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
@@ -396,6 +864,11 @@ export default function CardDetailPage() {
                             <Button size="sm" variant="outline" asChild>
                               <Link href={`/slab/${listing.id}`}>Details</Link>
                             </Button>
+                            <AddToWishlistButton
+                              slabId={listing.id}
+                              variant="ghost"
+                              size="sm"
+                            />
                             <Button size="sm" variant="ghost" onClick={() => handleAddToCart(listing, false)}>
                               Add to Cart
                             </Button>
@@ -435,6 +908,7 @@ export default function CardDetailPage() {
       </div>
 
       <Footer />
-    </div>
+      </div>
+    </>
   );
 }

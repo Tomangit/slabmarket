@@ -100,11 +100,6 @@ export default function CartPage() {
             {isSyncing && (
               <Badge variant="outline">Synchronizing with Supabase…</Badge>
             )}
-            {lastSyncError && (
-              <span className="text-sm text-amber-600 dark:text-amber-400">
-                Sync error (stub): {lastSyncError}
-              </span>
-            )}
           </div>
         </div>
 
