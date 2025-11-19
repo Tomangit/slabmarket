@@ -2,6 +2,7 @@
 import { useState, FormEvent } from "react";
 import { useTranslations } from 'next-intl';
 import { useRouter } from "next/router";
+import { GetStaticProps } from 'next';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,12 @@ import { Award, Mail, Lock, User, ArrowLeft, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { authService } from "@/services/authService";
+
+export const getStaticProps: GetStaticProps = async () => {
+  return {
+    props: {},
+  };
+};
 
 export default function RegisterPage() {
   const t = useTranslations();
