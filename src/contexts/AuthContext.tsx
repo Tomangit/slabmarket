@@ -182,20 +182,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error;
 
     if (data.user) {
-      // Create or update profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .upsert({
-          id: data.user.id,
-          email: data.user.email,
-          full_name: username,
-        }, {
-          onConflict: "id"
+      // Profile should be created automatically by database trigger
+      // But if it fails, use API endpoint as fallback (bypasses RLS)
+      try {
+        const response = await fetch('/api/create-profile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: data.user.id,
+            email: data.user.email,
+            fullName: username,
+          }),
         });
-      
-      if (profileError) {
-        console.error("Error creating profile:", profileError);
-        throw profileError;
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Error creating profile via API:", response.status, errorText);
+          // Don't throw - profile might be created by trigger anyway
+        }
+      } catch (apiError) {
+        console.error("Error calling create-profile API:", apiError);
+        // Don't throw - profile might be created by trigger anyway
       }
 
       // Create default wishlist for the user
