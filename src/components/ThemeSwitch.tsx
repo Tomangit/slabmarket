@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Sparkles } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,13 @@ const themes = [
     preview: "bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900",
     description: "Modern & Elegant"
   },
+  { 
+    value: "liquid", 
+    label: "Liquid Glass", 
+    icon: Sparkles, 
+    preview: "bg-gradient-to-br from-pink-200 via-purple-200 via-blue-200 to-pink-200",
+    description: "Apple Liquid Glass"
+  },
 ];
 
 export function ThemeSwitch() {
@@ -44,7 +51,7 @@ export function ThemeSwitch() {
       // Ensure theme class is applied to html element
       const html = document.documentElement;
       // Remove all theme classes
-      html.classList.remove('light', 'dark');
+      html.classList.remove('light', 'dark', 'liquid');
       // Add current theme class
       if (theme !== 'system') {
         html.classList.add(theme);

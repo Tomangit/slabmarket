@@ -95,6 +95,10 @@ export default function SellPage() {
   const [loadingRecommendation, setLoadingRecommendation] = useState(false);
   const [showRecommendation, setShowRecommendation] = useState(false);
 
+  // State for edit mode
+  const [editingSlabId, setEditingSlabId] = useState<string | null>(null);
+  const [loadingSlabData, setLoadingSlabData] = useState(false);
+
   // Load sets on mount
   useEffect(() => {
     async function loadSets() {
@@ -110,6 +114,134 @@ export default function SellPage() {
     }
     loadSets();
   }, []);
+
+  // Handle edit mode - load existing slab data and skip to step 2
+  useEffect(() => {
+    async function loadSlabForEdit() {
+      const editId = router.query.edit as string;
+      
+      if (!editId || !user) {
+        return;
+      }
+
+      try {
+        setLoadingSlabData(true);
+        const slabData = await slabService.getSlabById(editId);
+        
+        // Verify that the user owns this slab
+        if (slabData.seller_id !== user.id) {
+          toast({
+            title: "Access Denied",
+            description: "You can only edit your own listings.",
+            variant: "destructive",
+          });
+          router.push("/dashboard");
+          return;
+        }
+
+        setEditingSlabId(editId);
+        
+        // Fill in all the form fields with existing data
+        if (slabData.grading_company_id) {
+          setGradingCompany(slabData.grading_company_id);
+        }
+        if (slabData.cert_number) {
+          setCertNumber(slabData.cert_number);
+        }
+        if (slabData.grade) {
+          setGrade(slabData.grade);
+        }
+        if (slabData.cert_verified !== null) {
+          setCertVerified(slabData.cert_verified);
+        }
+        
+        // Set step to 2 to skip certificate verification
+        setStep(2);
+        
+        // Card details will be filled when sets are loaded
+        if (slabData.set_name) {
+          setPendingSetName(slabData.set_name);
+        }
+        if (slabData.name) {
+          setCardName(slabData.name);
+        }
+        if (slabData.year) {
+          setYear(slabData.year);
+        }
+        if (slabData.description) {
+          setDescription(slabData.description);
+        }
+        if (slabData.language) {
+          setSelectedLanguage(slabData.language);
+        }
+        // Set card_number for auto-matching when cards are loaded
+        if (slabData.card_number) {
+          setVerifiedCardNumber(slabData.card_number.toString());
+        }
+        // Set card_id if available
+        if (slabData.card_id) {
+          setSelectedCardId(slabData.card_id);
+        }
+        
+        // Edition variants
+        if (slabData.first_edition) setFirstEdition(true);
+        if (slabData.shadowless) setShadowless(true);
+        if (slabData.pokemon_center_edition) setPokemonCenterEdition(true);
+        if (slabData.prerelease) setPrerelease(true);
+        if (slabData.staff) setStaff(true);
+        if (slabData.tournament_card) setTournamentCard(true);
+        if (slabData.error_card) setErrorCard(true);
+        if (slabData.holo) setHolo(true);
+        if (slabData.reverse_holo) setReverseHolo(true);
+        
+        // Images
+        if (slabData.images && Array.isArray(slabData.images)) {
+          setUploadedImages(slabData.images);
+        }
+        
+        // Pricing
+        if (slabData.price) {
+          setPrice(slabData.price);
+        }
+        if (slabData.listing_type) {
+          const listingTypeMap: Record<string, "bin" | "auction" | "featured"> = {
+            fixed: "bin",
+            auction: "auction",
+            featured: "featured",
+          };
+          setListingType(listingTypeMap[slabData.listing_type] || "bin");
+        }
+        if (slabData.shipping_insured !== null) {
+          setShippingInsured(slabData.shipping_insured);
+        }
+        if (slabData.shipping_temperature_controlled !== null) {
+          setShippingTemperatureControlled(slabData.shipping_temperature_controlled);
+        }
+        if (slabData.escrow_protection !== null) {
+          setEscrowProtection(slabData.escrow_protection);
+        }
+        if (slabData.shipping_cost) {
+          setCalculatedShippingCost(slabData.shipping_cost);
+        }
+        if (slabData.shipping_estimated_days) {
+          setEstimatedShippingDays(slabData.shipping_estimated_days);
+        }
+        
+      } catch (error) {
+        console.error("Error loading slab for edit:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load listing data. Please try again.",
+          variant: "destructive",
+        });
+        router.push("/dashboard");
+      } finally {
+        setLoadingSlabData(false);
+      }
+    }
+    
+    loadSlabForEdit();
+  }, [router.query.edit, user, router, toast]);
 
   // Spróbuj znaleźć set po nazwie, gdy sets są załadowane
   useEffect(() => {
@@ -524,6 +656,18 @@ export default function SellPage() {
         set_name: slabData.set_name,
       });
 
+      if (editingSlabId) {
+        // Update existing slab
+        await slabService.updateSlab(editingSlabId, slabData);
+        
+        toast({
+          title: "Listing Updated",
+          description: "Your listing has been successfully updated.",
+        });
+        
+        router.push(`/slab/${editingSlabId}`);
+      } else {
+        // Create new slab
       const createdSlab = await slabService.createSlab(slabData);
 
       toast({
@@ -532,6 +676,7 @@ export default function SellPage() {
       });
 
       router.push(`/slab/${createdSlab.id}`);
+      }
     } catch (error) {
       console.error("Error creating listing:", error);
       toast({

@@ -11,7 +11,7 @@ export function ThemeProvider({
     <NextThemesProvider
       attribute="class"
       defaultTheme="dark"
-      themes={["light", "dark"]}
+      themes={["light", "dark", "liquid"]}
       enableSystem={false}
       disableTransitionOnChange={false}
       storageKey="slab-market-theme"

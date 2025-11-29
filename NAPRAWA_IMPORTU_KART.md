@@ -170,3 +170,6 @@ curl "https://api.pokemontcg.io/v2/cards?q=set.id:swsh10" | jq '.data[] | select
 
 
 
+
+
+

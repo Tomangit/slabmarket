@@ -1,5 +1,5 @@
 import type { AppProps } from "next/app";
-import { IntlProvider } from 'next-intl';
+import { NextIntlClientProvider } from 'next-intl';
 import { ThemeProvider } from "@/contexts/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
@@ -13,7 +13,12 @@ export default function App({ Component, pageProps }: AppProps) {
   // Messages will be loaded from the default locale (en)
 
   return (
-    <IntlProvider locale="en" messages={messages}>
+    <NextIntlClientProvider 
+      locale="en" 
+      messages={messages}
+      timeZone="UTC"
+      now={new Date()}
+    >
       <ThemeProvider>
         <AuthProvider>
           <CurrencyProvider>
@@ -23,6 +28,6 @@ export default function App({ Component, pageProps }: AppProps) {
           </CurrencyProvider>
         </AuthProvider>
       </ThemeProvider>
-    </IntlProvider>
+    </NextIntlClientProvider>
   );
 }

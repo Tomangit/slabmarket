@@ -8,6 +8,19 @@
   }
 }
 
+/* Apple Liquid Glass Animations */
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 /* ============================================
    DEFAULT THEME (fallback for :root)
    ============================================ */
@@ -148,6 +161,651 @@ html.dark {
   --sidebar-ring: 217 91% 60%;
 }
 
+/* ============================================
+   LIQUID GLASS THEME - Apple Liquid Glass Style
+   ============================================ */
+html.liquid {
+  --radius: 1rem;
+  /* Base Colors - Soft pastel gradient background */
+  --background: 280 50% 95%;
+  --foreground: 280 30% 20%;
+  /* Card - Glassmorphism with subtle blur */
+  --card: 280 40% 98%;
+  --card-foreground: 280 30% 20%;
+  /* Popover - Translucent glass effect */
+  --popover: 280 40% 98%;
+  --popover-foreground: 280 30% 20%;
+  /* Primary - Soft pastel pink */
+  --primary: 330 80% 70%;
+  --primary-foreground: 0 0% 100%;
+  /* Secondary - Light lavender */
+  --secondary: 280 60% 92%;
+  --secondary-foreground: 280 30% 20%;
+  /* Muted - Very light pastel */
+  --muted: 280 50% 96%;
+  --muted-foreground: 280 25% 50%;
+  /* Accent - Soft blue */
+  --accent: 210 80% 70%;
+  --accent-foreground: 0 0% 100%;
+  /* Destructive - Soft coral */
+  --destructive: 0 70% 65%;
+  --destructive-foreground: 0 0% 100%;
+  /* Borders & Inputs - Subtle pastel borders */
+  --border: 280 40% 85%;
+  --input: 280 40% 90%;
+  --ring: 330 80% 70%;
+  /* Charts - Pastel rainbow palette */
+  --chart-1: 330 80% 70%;
+  --chart-2: 210 80% 70%;
+  --chart-3: 280 80% 70%;
+  --chart-4: 340 80% 70%;
+  --chart-5: 300 80% 70%;
+  /* Sidebar - Light glass panel */
+  --sidebar: 280 40% 98%;
+  --sidebar-foreground: 280 30% 20%;
+  --sidebar-primary: 330 80% 70%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 280 60% 92%;
+  --sidebar-accent-foreground: 280 30% 20%;
+  --sidebar-border: 280 40% 85%;
+  --sidebar-ring: 330 80% 70%;
+}
+
+/* Liquid Glass Background Effect */
+html.liquid body {
+  background: linear-gradient(
+    135deg,
+    hsl(280 50% 95%) 0%,
+    hsl(300 50% 96%) 25%,
+    hsl(330 50% 95%) 50%,
+    hsl(210 50% 96%) 75%,
+    hsl(280 50% 95%) 100%
+  );
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+  min-height: 100vh;
+}
+
+/* Glassmorphism effect for cards in liquid theme */
+html.liquid [class*="card"],
+html.liquid [class*="Card"],
+html.liquid [class*="card"]:not([class*="CardHeader"]):not([class*="CardContent"]):not([class*="CardFooter"]):not([class*="CardTitle"]):not([class*="CardDescription"]) {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: none !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* Remove borders from all elements inside cards */
+html.liquid [class*="card"] [class*="border"],
+html.liquid [class*="Card"] [class*="border"],
+html.liquid [class*="card"] .border,
+html.liquid [class*="Card"] .border,
+html.liquid [class*="card"] div[class*="border"],
+html.liquid [class*="Card"] div[class*="border"] {
+  border: none !important;
+}
+
+/* Remove borders from category cards in dropdown/hover menu */
+html.liquid [class*="HoverCard"] [class*="border"],
+html.liquid [class*="hover-card"] [class*="border"],
+html.liquid [class*="HoverCard"] a[class*="border"],
+html.liquid [class*="hover-card"] a[class*="border"],
+html.liquid [class*="HoverCardContent"] a[class*="border"],
+html.liquid [class*="hover-card-content"] a[class*="border"] {
+  border: none !important;
+}
+
+/* Remove borders from all link elements with border classes in liquid theme */
+html.liquid a[class*="border"],
+html.liquid a[class*="border-2"],
+html.liquid a[class*="border-slate"],
+html.liquid a[class*="border-blue"],
+html.liquid Link[class*="border"] {
+  border: none !important;
+}
+
+/* Specifically target category cards in HoverCard */
+html.liquid [class*="HoverCard"] a.aspect-square,
+html.liquid [class*="hover-card"] a.aspect-square,
+html.liquid [class*="HoverCardContent"] a.aspect-square,
+html.liquid [class*="hover-card-content"] a.aspect-square,
+html.liquid [class*="HoverCardContent"] a[class*="rounded-lg"],
+html.liquid [class*="hover-card-content"] a[class*="rounded-lg"],
+html.liquid [class*="HoverCardContent"] div[class*="grid"] a,
+html.liquid [class*="hover-card-content"] div[class*="grid"] a {
+  border: none !important;
+}
+
+/* Remove borders from all elements with border-2 class in liquid theme */
+html.liquid [class*="border-2"] {
+  border: none !important;
+}
+
+/* Glassmorphism for popovers and dropdowns */
+html.liquid [class*="popover"],
+html.liquid [class*="Popover"],
+html.liquid [class*="dropdown"],
+html.liquid [class*="Dropdown"] {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
+}
+
+/* Enhanced glass effect for inputs */
+html.liquid input,
+html.liquid textarea,
+html.liquid select {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+html.liquid input:focus,
+html.liquid textarea:focus,
+html.liquid select:focus {
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 0 2px hsl(var(--ring)), 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================
+   LIQUID GLASS - Component Styles
+   ============================================ */
+
+/* Buttons - Glassmorphism with gradient */
+html.liquid button[class*="bg-primary"],
+html.liquid .bg-primary,
+html.liquid [class*="Button"][class*="bg-primary"],
+html.liquid button:not([class*="bg-secondary"]):not([class*="outline"]):not([class*="ghost"]):not([class*="link"]) {
+  background: linear-gradient(135deg, 
+    rgba(255, 182, 193, 0.8) 0%,
+    rgba(221, 160, 221, 0.8) 50%,
+    rgba(173, 216, 230, 0.8) 100%) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 
+    0 8px 32px 0 rgba(255, 182, 193, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+  transition: all 0.3s ease;
+}
+
+html.liquid button[class*="bg-primary"]:hover,
+html.liquid .bg-primary:hover,
+html.liquid [class*="Button"][class*="bg-primary"]:hover,
+html.liquid button:not([class*="bg-secondary"]):not([class*="outline"]):not([class*="ghost"]):not([class*="link"]):hover {
+  background: linear-gradient(135deg, 
+    rgba(255, 182, 193, 0.9) 0%,
+    rgba(221, 160, 221, 0.9) 50%,
+    rgba(173, 216, 230, 0.9) 100%) !important;
+  box-shadow: 
+    0 12px 40px 0 rgba(255, 182, 193, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+  transform: translateY(-1px);
+}
+
+html.liquid button[class*="bg-primary"]:active,
+html.liquid .bg-primary:active,
+html.liquid [class*="Button"][class*="bg-primary"]:active,
+html.liquid button:not([class*="bg-secondary"]):not([class*="outline"]):not([class*="ghost"]):not([class*="link"]):active {
+  transform: translateY(0);
+  box-shadow: 
+    0 4px 16px 0 rgba(255, 182, 193, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Secondary buttons */
+html.liquid button[class*="bg-secondary"],
+html.liquid .bg-secondary {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
+}
+
+html.liquid button[class*="bg-secondary"]:hover,
+html.liquid .bg-secondary:hover {
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 6px 20px 0 rgba(0, 0, 0, 0.15);
+}
+
+/* Outline buttons */
+html.liquid button[class*="border"],
+html.liquid [class*="outline"] {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.1);
+}
+
+html.liquid button[class*="border"]:hover,
+html.liquid [class*="outline"]:hover {
+  background: rgba(255, 255, 255, 0.5);
+  border-color: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.15);
+}
+
+/* Ghost buttons */
+html.liquid button[class*="ghost"],
+html.liquid [class*="ghost"] {
+  background: transparent;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+html.liquid button[class*="ghost"]:hover,
+html.liquid [class*="ghost"]:hover {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Sliders - Glass effect */
+html.liquid [class*="slider"] [class*="Track"],
+html.liquid [role="slider"] [class*="Track"] {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+html.liquid [class*="slider"] [class*="Range"],
+html.liquid [role="slider"] [class*="Range"] {
+  background: linear-gradient(90deg, 
+    rgba(255, 182, 193, 0.8),
+    rgba(221, 160, 221, 0.8),
+    rgba(173, 216, 230, 0.8));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(255, 182, 193, 0.3);
+}
+
+html.liquid [class*="slider"] [class*="Thumb"],
+html.liquid [role="slider"] [class*="Thumb"] {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px) saturate(180%);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 
+    0 4px 12px rgba(255, 182, 193, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+html.liquid [class*="slider"] [class*="Thumb"]:hover,
+html.liquid [role="slider"] [class*="Thumb"]:hover {
+  box-shadow: 
+    0 6px 16px rgba(255, 182, 193, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transform: scale(1.1);
+}
+
+/* Switches - Glass toggle */
+html.liquid [role="switch"][data-state="checked"],
+html.liquid [class*="switch"][data-state="checked"] {
+  background: linear-gradient(135deg, 
+    rgba(255, 182, 193, 0.8),
+    rgba(221, 160, 221, 0.8));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 2px 8px rgba(255, 182, 193, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+html.liquid [role="switch"][data-state="unchecked"],
+html.liquid [class*="switch"][data-state="unchecked"] {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+html.liquid [role="switch"] [class*="Thumb"],
+html.liquid [class*="switch"] [class*="Thumb"] {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px) saturate(180%);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Checkboxes - Glass style */
+html.liquid [role="checkbox"],
+html.liquid [class*="checkbox"] {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+html.liquid [role="checkbox"][data-state="checked"],
+html.liquid [class*="checkbox"][data-state="checked"] {
+  background: linear-gradient(135deg, 
+    rgba(255, 182, 193, 0.8),
+    rgba(221, 160, 221, 0.8));
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 
+    0 4px 12px rgba(255, 182, 193, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* Radio buttons - Glass style */
+html.liquid [role="radio"],
+html.liquid [class*="radio"] {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+html.liquid [role="radio"][data-state="checked"],
+html.liquid [class*="radio"][data-state="checked"] {
+  background: linear-gradient(135deg, 
+    rgba(255, 182, 193, 0.8),
+    rgba(221, 160, 221, 0.8));
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 
+    0 4px 12px rgba(255, 182, 193, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+html.liquid [role="radio"] [class*="Indicator"],
+html.liquid [class*="radio"] [class*="Indicator"] {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Progress bars - Glass with gradient */
+html.liquid [role="progressbar"],
+html.liquid [class*="progress"] {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+html.liquid [role="progressbar"] [class*="Indicator"],
+html.liquid [class*="progress"] [class*="Indicator"] {
+  background: linear-gradient(90deg, 
+    rgba(255, 182, 193, 0.9),
+    rgba(221, 160, 221, 0.9),
+    rgba(173, 216, 230, 0.9));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 
+    0 2px 8px rgba(255, 182, 193, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* Badges - Glass style */
+html.liquid [class*="badge"] {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+html.liquid [class*="badge"][class*="bg-primary"] {
+  background: linear-gradient(135deg, 
+    rgba(255, 182, 193, 0.8),
+    rgba(221, 160, 221, 0.8));
+  box-shadow: 
+    0 4px 12px rgba(255, 182, 193, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* Enhanced shadows for liquid glass theme - override Tailwind shadows */
+html.liquid .shadow-xs,
+html.liquid [class*="shadow-xs"] {
+  box-shadow: 0 2px 8px rgba(255, 182, 193, 0.15);
+}
+
+html.liquid .shadow-sm,
+html.liquid [class*="shadow-sm"] {
+  box-shadow: 0 2px 8px rgba(255, 182, 193, 0.15);
+}
+
+html.liquid .shadow,
+html.liquid .shadow-md,
+html.liquid [class*="shadow-md"] {
+  box-shadow: 0 4px 16px rgba(255, 182, 193, 0.2);
+}
+
+html.liquid .shadow-lg,
+html.liquid [class*="shadow-lg"] {
+  box-shadow: 0 8px 32px rgba(255, 182, 193, 0.25);
+}
+
+html.liquid .shadow-xl,
+html.liquid [class*="shadow-xl"] {
+  box-shadow: 0 12px 48px rgba(255, 182, 193, 0.3);
+}
+
+html.liquid .shadow-2xl,
+html.liquid [class*="shadow-2xl"] {
+  box-shadow: 0 16px 64px rgba(255, 182, 193, 0.35);
+}
+
+/* Tabs - Glass style */
+html.liquid [role="tablist"],
+html.liquid [class*="tabs"] [class*="List"] {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+html.liquid [role="tab"][data-state="active"],
+html.liquid [class*="tabs"] [class*="Trigger"][data-state="active"] {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px) saturate(180%);
+  box-shadow: 
+    0 2px 8px rgba(255, 182, 193, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Separators - Subtle glass */
+html.liquid [class*="separator"],
+html.liquid hr {
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+/* Scrollbar - Glass style */
+html.liquid ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+html.liquid ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 10px;
+}
+
+html.liquid ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+html.liquid ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* Dialogs and Modals - Glass overlay */
+html.liquid [role="dialog"],
+html.liquid [class*="dialog"],
+html.liquid [class*="Dialog"],
+html.liquid [class*="modal"],
+html.liquid [class*="Modal"] {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 20px 60px rgba(255, 182, 193, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+html.liquid [role="dialog"] [class*="Overlay"],
+html.liquid [class*="dialog"] [class*="Overlay"],
+html.liquid [class*="Dialog"] [class*="Overlay"] {
+  background: rgba(255, 182, 193, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Sheets and Drawers - Glass side panels */
+html.liquid [class*="sheet"],
+html.liquid [class*="Sheet"],
+html.liquid [class*="drawer"],
+html.liquid [class*="Drawer"] {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    -4px 0 24px rgba(255, 182, 193, 0.2),
+    inset 1px 0 0 rgba(255, 255, 255, 0.6);
+}
+
+/* Tooltips - Glass style */
+html.liquid [role="tooltip"],
+html.liquid [class*="tooltip"],
+html.liquid [class*="Tooltip"] {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 
+    0 4px 16px rgba(255, 182, 193, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  color: hsl(var(--foreground));
+}
+
+/* Alerts - Glass style */
+html.liquid [role="alert"],
+html.liquid [class*="alert"],
+html.liquid [class*="Alert"] {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* Tables - Glass style */
+html.liquid table,
+html.liquid [class*="table"],
+html.liquid [class*="Table"] {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+}
+
+html.liquid table th,
+html.liquid [class*="table"] th,
+html.liquid [class*="Table"] th {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+html.liquid table td,
+html.liquid [class*="table"] td,
+html.liquid [class*="Table"] td {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Accordion - Glass style */
+html.liquid [class*="accordion"],
+html.liquid [class*="Accordion"] {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+html.liquid [class*="accordion"] [class*="Trigger"]:hover,
+html.liquid [class*="Accordion"] [class*="Trigger"]:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* Command Palette - Glass style */
+html.liquid [class*="command"],
+html.liquid [class*="Command"] {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 12px 40px rgba(255, 182, 193, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* Navigation Menu - Glass style */
+html.liquid [class*="navigation-menu"],
+html.liquid [class*="NavigationMenu"] {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Skeleton - Glass shimmer */
+html.liquid [class*="skeleton"],
+html.liquid [class*="Skeleton"] {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0.3) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -155,6 +813,41 @@ html.dark {
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Remove borders from all cards globally */
+  [class*="card"],
+  [class*="Card"] {
+    border: none !important;
+  }
+  
+  /* Remove borders from category cards and links with border classes */
+  a[class*="border"],
+  a[class*="border-2"],
+  [class*="HoverCard"] a[class*="border"],
+  [class*="hover-card"] a[class*="border"],
+  [class*="HoverCardContent"] a[class*="border"],
+  [class*="hover-card-content"] a[class*="border"],
+  [class*="HoverCardContent"] a[class*="rounded-lg"],
+  [class*="hover-card-content"] a[class*="rounded-lg"],
+  [class*="HoverCardContent"] div[class*="grid"] a,
+  [class*="hover-card-content"] div[class*="grid"] a {
+    border: none !important;
+  }
+  
+  /* Remove borders from elements with border-2 class */
+  [class*="border-2"] {
+    border: none !important;
+  }
+  
+  /* Remove borders from inner elements in cards */
+  [class*="card"] [class*="border"],
+  [class*="Card"] [class*="border"],
+  [class*="card"] .border,
+  [class*="Card"] .border,
+  [class*="card"] div[class*="border"],
+  [class*="Card"] div[class*="border"] {
+    border: none !important;
   }
 }
 
@@ -179,5 +872,42 @@ html.dark {
   .animate-fade-in-up {
     animation: fadeInUp 0.4s ease-out forwards;
     opacity: 0;
+  }
+  
+  /* Modern Card Hover Effects */
+  @keyframes cardHover {
+    0% {
+      transform: translateY(0) scale(1);
+    }
+    100% {
+      transform: translateY(-4px) scale(1.01);
+    }
+  }
+  
+  .card-hover-effect {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .card-hover-effect:hover {
+    animation: cardHover 0.3s ease-out forwards;
+  }
+  
+  /* Smooth Image Zoom */
+  .image-zoom {
+    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .image-zoom:hover {
+    transform: scale(1.1);
+  }
+  
+  /* Overlay Fade In */
+  .overlay-fade {
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+  }
+  
+  .overlay-fade:hover {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

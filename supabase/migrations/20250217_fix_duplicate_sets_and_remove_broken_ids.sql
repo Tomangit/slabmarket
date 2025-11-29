@@ -122,3 +122,6 @@ COMMENT ON TABLE public.sets IS 'Pokemon TCG sets. IDs should match PokemonTCG A
 
 
 
+
+
+

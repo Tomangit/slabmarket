@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, memo } from "react";
+import React, { useState, useEffect, memo, useRef as ReactUseRef } from "react";
 import { useTranslations } from 'next-intl';
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { slabService } from "@/services/slabService";
 import { PriceDisplay } from "@/components/PriceDisplay";
 import { useAuth } from "@/contexts/AuthContext";
 import { SEO } from "@/components/SEO";
+import { motion } from "framer-motion";
 
 export default function HomePage() {
   const t = useTranslations();
@@ -100,7 +101,7 @@ export default function HomePage() {
         <MainHeader currentPage="home" />
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20">
+      <section className="container mx-auto px-4 py-20 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
           <Badge className="mb-4" variant="secondary">
             A curated marketplace for graded collectibles
@@ -118,6 +119,11 @@ export default function HomePage() {
             <Button size="lg" variant="outline" className="text-lg px-8" asChild>
               <Link href="/sell">{t('home.startSelling')}</Link>
             </Button>
+          </div>
+          
+          {/* Flip Card on Scroll */}
+          <div className="mt-16 flex justify-center">
+            <FlipCardOnScroll />
           </div>
         </div>
       </section>
@@ -682,5 +688,302 @@ const SlabCard = memo(function SlabCard({ slab }: { slab: any }) {
         </CardContent>
       </Link>
     </Card>
+  );
+});
+
+// Flip Card on Scroll Component
+const FlipCardOnScroll = memo(function FlipCardOnScroll() {
+  const [scrollY, setScrollY] = useState(0);
+  const cardRef = ReactUseRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (cardRef.current) {
+        const rect = cardRef.current.getBoundingClientRect();
+        const windowHeight = window.innerHeight;
+        const cardTop = rect.top;
+        const cardHeight = rect.height;
+        const cardCenterY = cardTop + cardHeight / 2;
+        const viewportCenterY = windowHeight / 2;
+        
+        // Calculate scroll progress - start flipping earlier (from 2nd scroll instead of 5th)
+        // Start flipping when card is higher on screen (earlier trigger)
+        // Complete flip when card center reaches viewport center
+        // Larger range = starts earlier and completes over more scroll distance
+        const flipRange = windowHeight * 0.7; // Increased from 0.4 to 0.7 for earlier start
+        // Start flipping when card is above viewport center (earlier trigger)
+        const startPoint = viewportCenterY + windowHeight * 0.3; // Start when card is higher
+        const distanceFromStart = Math.max(0, startPoint - cardCenterY);
+        const scrollProgress = Math.max(0, Math.min(1, distanceFromStart / flipRange));
+        setScrollY(scrollProgress);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Initial call
+    
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Calculate rotation based on scroll (0 to 180 degrees)
+  // Start at 0 (front facing user), end at 180 (back facing user)
+  // Ensure it starts at 0 and completes at 180
+  const rotation = Math.max(0, Math.min(180, scrollY * 180));
+
+  return (
+    <div 
+      ref={cardRef} 
+      className="flex justify-center items-center py-16 gap-8 relative"
+      style={{ 
+        perspective: '1000px',
+        minHeight: '500px',
+      }}
+    >
+      {/* Apple Liquid Glass Background Effect */}
+      <div 
+        className="absolute inset-0 rounded-3xl overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+          backdropFilter: 'blur(40px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+          border: '1px solid rgba(255, 255, 255, 0.18)',
+        }}
+      >
+        {/* Animated gradient overlay */}
+        <div 
+          className="absolute inset-0 opacity-30"
+          style={{
+            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 50%, rgba(236, 72, 153, 0.1) 100%)',
+            animation: 'gradientShift 8s ease infinite',
+            backgroundSize: '200% 200%',
+          }}
+        />
+        
+      </div>
+      
+      {/* Cards Container with glass effect */}
+      <div className="relative z-10 flex justify-center items-center gap-8">
+        {/* First Card - test.webp / test2.jpg */}
+        <motion.div
+          className="relative w-64 h-96 md:w-80 md:h-[28rem]"
+          style={{
+            transformStyle: 'preserve-3d',
+          }}
+          animate={{
+            rotateY: rotation,
+          }}
+          transition={{
+            type: 'tween',
+            duration: 0.1,
+            ease: 'linear',
+          }}
+        >
+        {/* Front of card */}
+        <div
+          className="absolute inset-0 w-full h-full rounded-lg overflow-hidden"
+          style={{
+            backfaceVisibility: 'hidden',
+            transform: 'rotateY(0deg)',
+            transformOrigin: 'center center',
+          }}
+        >
+          <Image
+            src="/test.webp"
+            alt="Card front"
+            fill
+            className="object-contain rounded-lg"
+            priority
+            sizes="(max-width: 768px) 256px, 320px"
+          />
+        </div>
+        
+        {/* Back of card */}
+        <div
+          className="absolute inset-0 w-full h-full rounded-lg overflow-hidden"
+          style={{
+            backfaceVisibility: 'hidden',
+            transform: 'rotateY(180deg)',
+            transformOrigin: 'center center',
+          }}
+        >
+          <Image
+            src="/test2.jpg"
+            alt="Card back"
+            fill
+            className="object-contain rounded-lg"
+            sizes="(max-width: 768px) 256px, 320px"
+          />
+        </div>
+        
+        {/* Card edge/thickness (3mm) - visible during rotation */}
+        <div
+          className="absolute inset-0 rounded-lg"
+          style={{
+            transformStyle: 'preserve-3d',
+            backfaceVisibility: 'hidden',
+          }}
+        >
+          {/* Top edge */}
+          <div
+            className="absolute bg-slate-800 dark:bg-slate-700"
+            style={{
+              width: '100%',
+              height: '3px',
+              top: 0,
+              left: 0,
+              transform: 'rotateX(90deg)',
+              transformOrigin: 'top center',
+            }}
+          />
+          {/* Bottom edge */}
+          <div
+            className="absolute bg-slate-800 dark:bg-slate-700"
+            style={{
+              width: '100%',
+              height: '3px',
+              bottom: 0,
+              left: 0,
+              transform: 'rotateX(-90deg)',
+              transformOrigin: 'bottom center',
+            }}
+          />
+          {/* Left edge */}
+          <div
+            className="absolute bg-slate-800 dark:bg-slate-700"
+            style={{
+              width: '3px',
+              height: '100%',
+              left: 0,
+              top: 0,
+              transform: 'rotateY(-90deg)',
+              transformOrigin: 'left center',
+            }}
+          />
+          {/* Right edge */}
+          <div
+            className="absolute bg-slate-800 dark:bg-slate-700"
+            style={{
+              width: '3px',
+              height: '100%',
+              right: 0,
+              top: 0,
+              transform: 'rotateY(90deg)',
+              transformOrigin: 'right center',
+            }}
+          />
+        </div>
+        </motion.div>
+
+        {/* Second Card - czarek1.jpg / czarek2.jpg */}
+        <motion.div
+          className="relative w-64 h-96 md:w-80 md:h-[28rem]"
+          style={{
+            transformStyle: 'preserve-3d',
+          }}
+          animate={{
+            rotateY: rotation,
+          }}
+          transition={{
+            type: 'tween',
+            duration: 0.1,
+            ease: 'linear',
+          }}
+        >
+        {/* Front of card */}
+        <div
+          className="absolute inset-0 w-full h-full rounded-lg overflow-hidden"
+          style={{
+            backfaceVisibility: 'hidden',
+            transform: 'rotateY(0deg)',
+            transformOrigin: 'center center',
+          }}
+        >
+          <Image
+            src="/czarek1.jpg"
+            alt="Card front"
+            fill
+            className="object-contain rounded-lg"
+            sizes="(max-width: 768px) 256px, 320px"
+          />
+        </div>
+        
+        {/* Back of card */}
+        <div
+          className="absolute inset-0 w-full h-full rounded-lg overflow-hidden"
+          style={{
+            backfaceVisibility: 'hidden',
+            transform: 'rotateY(180deg)',
+            transformOrigin: 'center center',
+          }}
+        >
+          <Image
+            src="/czarek2.jpg"
+            alt="Card back"
+            fill
+            className="object-contain rounded-lg"
+            sizes="(max-width: 768px) 256px, 320px"
+          />
+        </div>
+        
+        {/* Card edge/thickness (3mm) - visible during rotation */}
+        <div
+          className="absolute inset-0 rounded-lg"
+          style={{
+            transformStyle: 'preserve-3d',
+            backfaceVisibility: 'hidden',
+          }}
+        >
+          {/* Top edge */}
+          <div
+            className="absolute bg-slate-800 dark:bg-slate-700"
+            style={{
+              width: '100%',
+              height: '3px',
+              top: 0,
+              left: 0,
+              transform: 'rotateX(90deg)',
+              transformOrigin: 'top center',
+            }}
+          />
+          {/* Bottom edge */}
+          <div
+            className="absolute bg-slate-800 dark:bg-slate-700"
+            style={{
+              width: '100%',
+              height: '3px',
+              bottom: 0,
+              left: 0,
+              transform: 'rotateX(-90deg)',
+              transformOrigin: 'bottom center',
+            }}
+          />
+          {/* Left edge */}
+          <div
+            className="absolute bg-slate-800 dark:bg-slate-700"
+            style={{
+              width: '3px',
+              height: '100%',
+              left: 0,
+              top: 0,
+              transform: 'rotateY(-90deg)',
+              transformOrigin: 'left center',
+            }}
+          />
+          {/* Right edge */}
+          <div
+            className="absolute bg-slate-800 dark:bg-slate-700"
+            style={{
+              width: '3px',
+              height: '100%',
+              right: 0,
+              top: 0,
+              transform: 'rotateY(90deg)',
+              transformOrigin: 'right center',
+            }}
+          />
+        </div>
+        </motion.div>
+      </div>
+    </div>
   );
 });

@@ -12,6 +12,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Menu, Bell, Heart, ShoppingCart, User, LogOut, Settings, ShieldCheck, MessageSquare, DollarSign, Wallet } from "lucide-react";
@@ -189,14 +194,68 @@ export function MainHeader({ currentPage }: MainHeaderProps) {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            <Link
-              href="/marketplace"
-              className={`text-sm font-medium transition-colors ${
-                isActive("marketplace") ? "text-blue-600" : "hover:text-blue-600"
-              }`}
-            >
-              {t('common.marketplace')}
-            </Link>
+            <HoverCard openDelay={100} closeDelay={100}>
+              <HoverCardTrigger asChild>
+                <button
+                  className={`text-sm font-medium transition-colors flex items-center gap-1 ${
+                    isActive("marketplace") ? "text-blue-600" : "hover:text-blue-600"
+                  }`}
+                >
+                  {t('common.marketplace')}
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+              </HoverCardTrigger>
+              <HoverCardContent align="start" className="w-80 px-4 pb-4 pt-2">
+                <div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Link
+                      href="/marketplace?category=pokemon-tcg"
+                      className="group relative aspect-square rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-blue-500 dark:hover:border-blue-400 transition-all hover:shadow-lg overflow-hidden"
+                    >
+                      <div className="absolute inset-0 flex items-center justify-center p-4">
+                        <Image
+                          src="https://upload.wikimedia.org/wikipedia/commons/9/98/International_Pok%C3%A9mon_logo.svg"
+                          alt="Pokemon TCG"
+                          fill
+                          className="object-contain p-4"
+                        />
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 p-2 flex justify-center">
+                        <span className="text-xs font-medium text-slate-900 dark:text-slate-100">Pokemon TCG</span>
+                      </div>
+                    </Link>
+                    <Link
+                      href="/marketplace?category=disney-lorcana"
+                      className="group relative aspect-square rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-blue-500 dark:hover:border-blue-400 transition-all hover:shadow-lg overflow-hidden"
+                    >
+                      <div className="absolute inset-0 flex items-center justify-center p-4">
+                        <Image
+                          src="/Disney_Lorcana_Logo.png"
+                          alt="Disney Lorcana"
+                          fill
+                          className="object-contain p-4"
+                        />
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 p-2 flex justify-center">
+                        <span className="text-xs font-medium text-slate-900 dark:text-slate-100">Disney Lorcana</span>
+                      </div>
+                    </Link>
+                  </div>
+                </div>
+              </HoverCardContent>
+            </HoverCard>
             <Link
               href="/dashboard"
               className={`text-sm font-medium transition-colors ${
@@ -422,13 +481,39 @@ export function MainHeader({ currentPage }: MainHeaderProps) {
             </SheetTrigger>
             <SheetContent side="right" className="w-80">
               <nav className="flex flex-col space-y-4 mt-8">
-                <Link
-                  href="/marketplace"
-                  className="text-lg font-medium hover:text-blue-600 transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {t('common.marketplace')}
-                </Link>
+                <div className="space-y-2">
+                  <div className="text-lg font-medium">{t('common.marketplace')}</div>
+                  <div className="pl-4 space-y-2">
+                    <Link
+                      href="/marketplace?category=pokemon-tcg"
+                      className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Image
+                        src="https://upload.wikimedia.org/wikipedia/commons/9/98/International_Pok%C3%A9mon_logo.svg"
+                        alt="Pokemon"
+                        width={16}
+                        height={16}
+                        className="object-contain"
+                      />
+                      <span>Pokemon TCG</span>
+                    </Link>
+                    <Link
+                      href="/marketplace?category=disney-lorcana"
+                      className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Image
+                        src="/Disney_Lorcana_Logo.png"
+                        alt="Disney Lorcana"
+                        width={16}
+                        height={16}
+                        className="object-contain"
+                      />
+                      <span>Disney Lorcana</span>
+                    </Link>
+                  </div>
+                </div>
                 <Link
                   href="/dashboard"
                   className="text-lg font-medium hover:text-blue-600 transition-colors"

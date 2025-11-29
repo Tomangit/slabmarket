@@ -31,7 +31,7 @@ import { useCart } from "@/contexts/CartContext";
 import { setService } from "@/services/setService";
 import type { PokemonSet } from "@/data/pokemonSetCatalog";
 import { SetCombobox } from "@/components/SetCombobox";
-import { AddToWishlistButton } from "@/components/AddToWishlistButton";
+import { AddCardToWishlistButton } from "@/components/AddCardToWishlistButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { wishlistService } from "@/services/wishlistService";
 import { SEO } from "@/components/SEO";
@@ -679,7 +679,7 @@ export default function MarketplacePage() {
 
                 {/* Grid View */}
                 {viewMode === "grid" && (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {cards.map((card) => (
                       <CardListingCard key={card.id} card={card} />
                     ))}
@@ -1040,99 +1040,147 @@ function FilterPanel({
 
 const CardListingCard = memo(function CardListingCard({ card }: { card: MarketplaceCard }) {
   const t = useTranslations();
+  const [isHovered, setIsHovered] = useState(false);
+  
   return (
-    <Card className="hover:shadow-xl transition-all duration-300 group h-full">
-      <CardHeader className="p-0">
-        <Link
-          href={`/card/${card.slug || card.id}`}
-          className="block relative aspect-[3/4] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-t-lg overflow-hidden"
-        >
-          {card.image_url ? (
-            <Image
-              src={card.image_url}
-              alt={card.name}
-              fill
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              loading="lazy"
-              placeholder="blur"
-              blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-6xl">
-              🃏
-            </div>
-          )}
-          <div className="absolute bottom-2 left-2 right-2 flex gap-2 flex-wrap">
-            {card.available_gradings && card.available_gradings.length > 0
-              ? card.available_gradings.slice(0, 3).map((grading) => (
-                  <Badge key={grading} variant="secondary" className="text-xs">
-                    {grading}
-                  </Badge>
-                ))
-              : null}
-          </div>
-        </Link>
-      </CardHeader>
-      <CardContent className="p-4 space-y-3">
-        <div>
+    <div 
+      className="group relative h-full"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <Card className="h-full overflow-hidden transition-all duration-500 ease-out hover:shadow-2xl hover:shadow-blue-500/10 dark:hover:shadow-blue-400/10 hover:-translate-y-1">
+        {/* Image Container with Overlay */}
+        <CardHeader className="p-0 relative">
           <Link
             href={`/card/${card.slug || card.id}`}
-            className="font-semibold mb-1 group-hover:text-blue-600 transition-colors line-clamp-1"
+            className="block relative aspect-[3/4] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 overflow-hidden"
           >
-            {card.name}
-          </Link>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            {card.set_name} {card.card_number && `• #${card.card_number}`}
-          </p>
-        </div>
-        <Badge variant="outline" className="uppercase w-fit">
-          {getSeriesCode(card)}
-        </Badge>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">{t('marketplace.from')}</p>
-            <p className="text-2xl font-bold text-blue-600">
-              {card.lowest_price ? (
-                <PriceDisplay price={card.lowest_price} fromCurrency="USD" />
-              ) : (
-                t('marketplace.noListings')
-              )}
-            </p>
-          </div>
-          <div className="text-right">
-            {card.total_listings > 0 ? (
+            {card.image_url ? (
               <>
-                <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 justify-end">
-                  <Users className="h-3 w-3" />
-                  {card.total_sellers} {card.total_sellers !== 1 ? t('marketplace.sellers') : t('marketplace.seller')}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 justify-end mt-1">
-                  <ShoppingCart className="h-3 w-3" />
-                  {card.total_listings} {card.total_listings !== 1 ? t('marketplace.listings') : t('marketplace.listing')}
-                </p>
+                <Image
+                  src={card.image_url}
+                  alt={card.name}
+                  fill
+                  className="object-cover transition-all duration-700 group-hover:scale-110"
+                  sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  loading="lazy"
+                  placeholder="blur"
+                  blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
+                />
+                {/* Gradient Overlay on Hover */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               </>
             ) : (
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {t('marketplace.noListingsYet')}
+              <div className="absolute inset-0 flex items-center justify-center text-6xl">
+                🃏
+              </div>
+            )}
+            
+            {/* Grading Badges - Top Right */}
+            {card.available_gradings && card.available_gradings.length > 0 && (
+              <div className="absolute top-2 right-2 flex gap-1.5 flex-wrap justify-end opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                {card.available_gradings.slice(0, 2).map((grading) => (
+                  <Badge 
+                    key={grading} 
+                    variant="secondary" 
+                    className="text-[10px] py-0.5 px-1.5 backdrop-blur-sm bg-white/90 dark:bg-slate-900/90 shadow-lg"
+                  >
+                    {grading}
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            {/* Quick Actions Overlay - Bottom */}
+            <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 via-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-full group-hover:translate-y-0">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-xs font-medium truncate mb-0.5">{card.name}</p>
+                  <p className="text-white/80 text-[10px] truncate">
+                    {card.set_name} {card.card_number && `• #${card.card_number}`}
+                  </p>
+                </div>
+                {card.total_listings > 0 && (
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <AddToCartButton card={card} />
+                    <AddCardToWishlistButton cardId={card.id} variant="ghost" size="icon" />
+                  </div>
+                )}
+              </div>
+            </div>
+          </Link>
+        </CardHeader>
+
+        {/* Content Section */}
+        <CardContent className="p-4 space-y-3">
+          {/* Title and Set */}
+          <div className="space-y-1">
+            <Link
+              href={`/card/${card.slug || card.id}`}
+              className="block"
+            >
+              <h3 className="font-semibold text-sm leading-tight line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
+                {card.name}
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1 mt-0.5">
+                {card.set_name} {card.card_number && `• #${card.card_number}`}
               </p>
+            </Link>
+          </div>
+
+          {/* Series Badge */}
+          <Badge variant="outline" className="uppercase text-[10px] py-0.5 px-2 font-medium">
+            {getSeriesCode(card)}
+          </Badge>
+
+          {/* Price and Stats */}
+          <div className="flex items-end justify-between gap-3 pt-1 border-t border-slate-200 dark:border-slate-700">
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-1 font-medium uppercase tracking-wide">
+                {t('marketplace.from')}
+              </p>
+              <p className="text-xl font-bold text-blue-600 dark:text-blue-400 leading-none">
+                {card.lowest_price ? (
+                  <PriceDisplay price={card.lowest_price} fromCurrency="USD" />
+                ) : (
+                  <span className="text-sm text-slate-400">{t('marketplace.noListings')}</span>
+                )}
+              </p>
+            </div>
+            
+            {card.total_listings > 0 && (
+              <div className="text-right flex-shrink-0 space-y-0.5">
+                <div className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400 justify-end">
+                  <Users className="h-3 w-3" />
+                  <span className="font-medium">{card.total_sellers}</span>
+                </div>
+                <div className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400 justify-end">
+                  <ShoppingCart className="h-3 w-3" />
+                  <span className="font-medium">{card.total_listings}</span>
+                </div>
+              </div>
             )}
           </div>
-        </div>
-      </CardContent>
-      <CardFooter className="p-4 pt-0 flex gap-2">
-        <Button className="flex-1" variant="outline" asChild>
-          <Link href={`/card/${card.slug || card.id}`}>
-            {card.total_listings > 0 
-              ? t('marketplace.viewOffers', { count: card.total_listings, plural: card.total_listings !== 1 ? 's' : '' })
-              : t('marketplace.viewCardDetails')
-            }
-          </Link>
-        </Button>
-        {card.total_listings > 0 && <AddToCartButton card={card} />}
-      </CardFooter>
-    </Card>
+        </CardContent>
+
+        {/* Footer with CTA */}
+        <CardFooter className="p-4 pt-0">
+          <Button 
+            className="w-full h-9 text-xs font-medium" 
+            variant={card.total_listings > 0 ? "default" : "outline"}
+            size="sm"
+            asChild
+          >
+            <Link href={`/card/${card.slug || card.id}`}>
+              {card.total_listings > 0 
+                ? t('marketplace.viewOffers', { count: card.total_listings, plural: card.total_listings !== 1 ? 's' : '' })
+                : t('marketplace.viewCardDetails')
+              }
+            </Link>
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
   );
 });
 
